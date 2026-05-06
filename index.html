@@ -158,17 +158,46 @@
     }
 
     /* ExpandedDetail: full width, above bottom nav */
-    .mob-detail { left:0 !important; right:0 !important;
-                  padding-right:0 !important; bottom:56px !important; }
-    .mob-detail > div { max-width:calc(100vw - 32px) !important;
-                        width:calc(100vw - 32px) !important;
-                        margin:0 auto 0 !important;
-                        padding:16px 18px !important; }
+
+    /* Video + Graphic wide panels on mobile: full width, centred */
+    .mob-detail {
+      align-items: flex-end !important;
+      justify-content: center !important;
+    }
+
+    .mob-detail {
+      left:0 !important; right:0 !important;
+      padding-right:0 !important; bottom:56px !important;
+      justify-content: center !important;
+      align-items: flex-end !important;
+    }
+    /* simple text panels */
+    .mob-detail > div {
+      max-width: calc(100vw - 24px) !important;
+      width: calc(100vw - 24px) !important;
+      margin: 0 12px !important;
+      padding: 16px 16px !important;
+    }
+    /* 2-col wide panels (video/graphic): stack columns vertically */
+    .mob-detail .mob-wide-inner {
+      flex-direction: column !important;
+      max-height: 65vh; overflow-y: auto;
+    }
+    .mob-detail .mob-wide-inner > div {
+      flex: none !important;
+      width: 100% !important;
+      max-height: 220px;
+    }
     .mob-nav { display: flex !important; }
   }
   @media (min-width: 769px) {
     .mob-nav { display: none !important; }
   }
+  /* ── Desktop sidebar collapse ── */
+  .sidebar-collapsed {
+    transform: translateX(calc(240px - 22px)) !important;
+  }
+
 
   /* ── Bottom nav bar ── */
   .mob-nav {
@@ -1722,15 +1751,48 @@
   }
 
   /* ── Sidebar ────────────────────────────────────────────────────────── */
-  function Sidebar({ activeId, onJump, revealedCount, navItems }) {
+  function useSidebarCollapsed() {
+    const [collapsed, setCollapsed] = React.useState(() => {
+      try { return localStorage.getItem("ld_sidebar_collapsed") === "1"; } catch { return false; }
+    });
+    const toggle = () => setCollapsed(c => {
+      const next = !c;
+      try { localStorage.setItem("ld_sidebar_collapsed", next ? "1" : "0"); } catch {}
+      return next;
+    });
+    return [collapsed, toggle];
+  }
+
+  function Sidebar({ activeId, onJump, revealedCount, navItems, collapsed, onToggle }) {
     return (
-      <aside className="desk-sidebar" style={{
+      <aside className={"desk-sidebar" + (collapsed ? " sidebar-collapsed" : "")} style={{
         position: "fixed", top: 0, right: 0, bottom: 0, width: 240, zIndex: 100,
         borderLeft: "1px solid var(--line)",
         background: "linear-gradient(180deg, rgba(5,5,5,0.6), rgba(5,5,5,0.92))",
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         display: "flex", flexDirection: "column", padding: "32px 28px",
+        transition: "transform 350ms cubic-bezier(0.4,0,0.2,1)",
       }}>
+        {/* ── collapse tab ── */}
+        <button onClick={onToggle} title={collapsed ? "Ouvrir" : "Réduire"}
+          style={{
+            position:"absolute", left:-1, top:"50%",
+            transform:"translateY(-50%) translateX(-100%)",
+            width:22, height:48,
+            background:"rgba(5,5,5,0.85)",
+            border:"1px solid var(--line)", borderRight:"none",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            cursor:"pointer", color:"var(--gold)", fontSize:11,
+            clipPath:"polygon(0 15%,100% 0%,100% 100%,0 85%)",
+            transition:"background 200ms",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(212,165,116,0.12)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(5,5,5,0.85)"}>
+          {collapsed ? "›" : "‹"}
+        </button>
+        <div style={{ display:"flex", flexDirection:"column", flex:1,
+          opacity: collapsed ? 0 : 1, pointerEvents: collapsed ? "none" : "auto",
+          transition:"opacity 250ms", overflow:"hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 48 }}>
           <div style={{ width: 28, height: 32, clipPath: HEX_CLIP, background: "linear-gradient(135deg, var(--gold), var(--gold-deep))" }}/>
           <div>
@@ -1786,6 +1848,7 @@
               <a key={s.label} href={s.url} style={{ color: "var(--bone)", textDecoration: "none", opacity: 0.75 }}>↗ {s.label}</a>
             ))}
           </div>
+        </div>
         </div>
       </aside>
     );
@@ -1880,18 +1943,18 @@
     }
 
     return (
-      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+      <div className="mob-detail" style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
         <div style={{
           pointerEvents:"auto", marginBottom:40,
-          width:"min(860px, calc(100vw - 280px))",
+          width:"min(860px, calc(100vw - 32px))",
           background:"rgba(6,5,4,0.92)",
           backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
           border:"1px solid var(--line-strong)",
           animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both",
-          display:"flex", gap:0, overflow:"hidden",
+          display:"flex", flexWrap:"wrap", gap:0, overflow:"hidden",
         }}>
           {/* ── LEFT: video player ── */}
-          <div style={{ flex:"0 0 52%", position:"relative", background:"#000" }}>
+          <div style={{ flex:"0 0 52%", minWidth:"min(52%, 100%)", position:"relative", background:"#000" }}>
             {/* aspect-ratio box */}
             <div style={{ paddingTop:"56.25%", position:"relative" }}>
               {embedUrl ? (
@@ -1922,7 +1985,7 @@
           </div>
 
           {/* ── RIGHT: metadata ── */}
-          <div style={{ flex:1,padding:"24px 28px",overflowY:"auto",maxHeight:360,display:"flex",flexDirection:"column",gap:0,borderLeft:"1px solid rgba(212,165,116,0.1)" }}>
+          <div style={{ flex:1,minWidth:"min(48%,100%)",padding:"24px 28px",overflowY:"auto",maxHeight:300,display:"flex",flexDirection:"column",gap:0,borderLeft:"1px solid rgba(212,165,116,0.1)",borderTop:"1px solid rgba(212,165,116,0.06)" }}>
             <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
 
             {/* Video title */}
@@ -1975,7 +2038,7 @@
     /* ── No photo selected yet: generic cell description ── */
     if (!photo) {
       return (
-        <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+        <div className="mob-detail" style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
           <div style={{ pointerEvents:"auto",marginBottom:48,maxWidth:680,width:"100%",padding:"24px 32px",background:"rgba(6,5,4,0.88)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both" }}>
             <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
             <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:28,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:12 }}>{d.title || "Identities, type, and editorial systems."}</div>
@@ -1993,21 +2056,21 @@
 
     /* ── Photo selected: details panel only (photo is in the hex) ── */
     return (
-      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+      <div className="mob-detail" style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
         <div style={{
           pointerEvents:"auto", marginBottom:40,
-          width:"min(720px, calc(100vw - 280px))",
+          width:"min(720px, calc(100vw - 24px))",
           background:"rgba(6,5,4,0.93)",
           backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
           border:"1px solid var(--line-strong)",
           animation:"fadeUp 400ms cubic-bezier(.2,.7,.2,1) both",
-          display:"flex", overflow:"hidden",
+          display:"flex", flexWrap:"wrap", overflow:"hidden",
         }}>
           {/* thin color accent strip */}
-          <div style={{ width:3, flexShrink:0, background:"linear-gradient(180deg,var(--gold-deep),var(--gold-bright))" }}/>
+          <div style={{ width:3, flexShrink:0, alignSelf:"stretch", background:"linear-gradient(180deg,var(--gold-deep),var(--gold-bright))" }}/>
 
           {/* content */}
-          <div style={{ flex:1, padding:"22px 28px", display:"flex", flexDirection:"column", gap:0 }}>
+          <div style={{ flex:1, minWidth:"min(200px,100%)", padding:"18px 20px", display:"flex", flexDirection:"column", gap:0 }}>
             <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14 }}>
               — {cell.num} / {cell.label.toUpperCase()} · {photoIdx+1}/{photos.length}
             </div>
@@ -2066,6 +2129,8 @@
     const [loaded,        setLoaded]        = useState(false);
     const [revealedCount, setRevealedCount] = useState(1);
     const [expandedId,    setExpandedId]    = useState(null);
+    const [sidebarCollapsed, toggleSidebar]  = useSidebarCollapsed();
+    const sidebarW = sidebarCollapsed ? 22 : 240;
     const [hovered,       setHovered]       = useState(null);
     const [activeId,      setActiveId]      = useState("intro");
 
@@ -2200,7 +2265,7 @@
           )}
         </div>
 
-        <Sidebar activeId={activeId} onJump={onJump} revealedCount={revealedCount} navItems={NAV_ITEMS} />
+        <Sidebar activeId={activeId} onJump={onJump} revealedCount={revealedCount} navItems={NAV_ITEMS} collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         <TopBar revealed={revealedCount} total={total} expandedId={expandedId} onClose={() => setExpandedId(null)} />
         <ExpandedDetail cell={expandedCell} />
 
