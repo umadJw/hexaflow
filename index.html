@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lea Dimas — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --obsidian: #050505;
+    --obsidian-2: #0c0b09;
+    --obsidian-3: #14110d;
+    --gold: #d4a574;
+    --gold-bright: #e8b560;
+    --gold-deep: #8a6635;
+    --bone: #f4ede0;
+    --bone-dim: #b9b1a3;
+    --line: rgba(212, 165, 116, 0.18);
+    --line-strong: rgba(212, 165, 116, 0.45);
+    --mood-serif: 'Fraunces', serif;
+    --mood-body: 'Inter', sans-serif;
+    --mood-italic: italic;
+    --mood-grain: 0.35;
+    --mood-vignette: 0.4;
+    --mood-stroke: 1.5px;
+    --tempo: 1;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--obsidian);
+    color: var(--bone);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body {
+    background:
+      radial-gradient(1200px 800px at 20% 10%, rgba(212,165,116,0.06), transparent 60%),
+      radial-gradient(900px 700px at 90% 80%, rgba(212,165,116,0.04), transparent 60%),
+      var(--obsidian);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    opacity: var(--mood-grain, 0.35);
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+  }
+  #root { min-height: 100vh; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(212,165,116,0.18); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(212,165,116,0.35); }
+  /* ── Admin ───────────────────────────────────────────────────── */
+  .adm-overlay{position:fixed;inset:0;z-index:9999;background:var(--obsidian);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+  .adm-card{width:420px;padding:48px 44px;border:1px solid rgba(212,165,116,0.22);background:linear-gradient(160deg,#0c0b09,#050505)}
+  .adm-logo{display:flex;align-items:center;gap:12px;margin-bottom:44px}
+  .adm-hex-sm{width:26px;height:30px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);background:linear-gradient(135deg,var(--gold),var(--gold-deep));flex-shrink:0}
+  .adm-title{font-family:'Fraunces',serif;font-weight:300;font-size:22px;letter-spacing:-0.02em;color:var(--bone)}
+  .adm-sub{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.3em;color:var(--gold);margin-top:3px}
+  .adm-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--bone-dim);margin-bottom:8px;display:block}
+  .adm-input{width:100%;box-sizing:border-box;background:rgba(255,255,255,0.03);border:1px solid rgba(212,165,116,0.2);color:var(--bone);font-family:'Inter',sans-serif;font-size:14px;padding:12px 16px;outline:none;transition:border-color 200ms}
+  .adm-input:focus{border-color:rgba(212,165,116,0.55)}
+  .adm-input::placeholder{color:rgba(185,177,163,0.3)}
+  .adm-btn{width:100%;padding:14px;margin-top:28px;background:linear-gradient(135deg,rgba(212,165,116,0.18),rgba(212,165,116,0.08));border:1px solid rgba(212,165,116,0.4);color:var(--gold-bright);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;cursor:pointer;transition:all 250ms ease}
+  .adm-btn:hover{background:rgba(212,165,116,0.22);border-color:rgba(212,165,116,0.7)}
+  .adm-err{margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:#e05555;text-align:center}
+  .adm-hint{margin-top:18px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(185,177,163,0.3)}
+  .adm-field-group{margin-bottom:20px}
+  .adm-dash{position:fixed;inset:0;z-index:9998;display:flex;background:#060504}
+  .adm-sidebar{width:220px;flex-shrink:0;border-right:1px solid rgba(212,165,116,0.14);background:linear-gradient(180deg,#080704,#050403);display:flex;flex-direction:column;padding:28px 20px}
+  .adm-main{flex:1;overflow-y:auto;padding:36px 44px}
+  .adm-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:2px;cursor:pointer;border:1px solid transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--bone-dim);transition:all 180ms;background:transparent;width:100%;text-align:left}
+  .adm-nav-item:hover{color:var(--bone);background:rgba(212,165,116,0.05);border-color:rgba(212,165,116,0.12)}
+  .adm-nav-item.active{color:var(--gold-bright);background:rgba(212,165,116,0.1);border-color:rgba(212,165,116,0.25)}
+  .adm-nav-icon{font-size:15px;width:20px;text-align:center}
+  .adm-section-title{font-family:'Fraunces',serif;font-weight:300;font-size:28px;letter-spacing:-0.02em;color:var(--bone);margin-bottom:6px}
+  .adm-section-meta{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.3em;color:var(--gold);margin-bottom:32px}
+  .adm-textarea{width:100%;box-sizing:border-box;min-height:90px;resize:vertical;background:rgba(255,255,255,0.03);border:1px solid rgba(212,165,116,0.18);color:var(--bone);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;padding:12px 16px;outline:none}
+  .adm-textarea:focus{border-color:rgba(212,165,116,0.45)}
+  .adm-save-btn{padding:12px 28px;background:linear-gradient(135deg,rgba(212,165,116,0.18),rgba(212,165,116,0.08));border:1px solid rgba(212,165,116,0.4);color:var(--gold-bright);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;text-transform:uppercase;cursor:pointer;transition:all 250ms}
+  .adm-save-btn:hover{background:rgba(212,165,116,0.24)}
+  .adm-danger-btn{padding:10px 20px;background:transparent;border:1px solid rgba(220,60,60,0.35);color:rgba(220,100,100,0.8);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;cursor:pointer}
+  .adm-danger-btn:hover{border-color:rgba(220,60,60,0.7);color:#e05555}
+  .adm-ghost-btn{padding:10px 20px;background:transparent;border:1px solid rgba(212,165,116,0.2);color:var(--bone-dim);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;cursor:pointer}
+  .adm-ghost-btn:hover{border-color:rgba(212,165,116,0.45);color:var(--bone)}
+  .adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+  .adm-photo-card{position:relative;background:rgba(255,255,255,0.03);border:1px solid rgba(212,165,116,0.15);overflow:hidden}
+  .adm-photo-card img{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:4/3}
+  .adm-photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 200ms}
+  .adm-photo-card:hover .adm-photo-overlay{opacity:1}
+  .adm-upload-zone{border:1px dashed rgba(212,165,116,0.35);padding:40px;text-align:center;cursor:pointer;transition:all 200ms;background:rgba(212,165,116,0.02)}
+  .adm-upload-zone:hover,.adm-upload-zone.drag-over{border-color:rgba(212,165,116,0.7);background:rgba(212,165,116,0.06)}
+  .adm-toolbar{display:flex;gap:4px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(212,165,116,0.15);border-bottom:none;flex-wrap:wrap;align-items:center}
+  .adm-tb-btn{padding:5px 10px;background:transparent;border:1px solid transparent;color:var(--bone-dim);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all 150ms;min-width:32px;text-align:center}
+  .adm-tb-btn:hover{background:rgba(212,165,116,0.1);border-color:rgba(212,165,116,0.2);color:var(--bone)}
+  .adm-tb-sep{width:1px;height:20px;background:rgba(212,165,116,0.15);margin:0 4px}
+  .adm-tb-select{background:#0c0b09;border:1px solid rgba(212,165,116,0.18);color:var(--bone-dim);font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;cursor:pointer;outline:none}
+  .adm-rich-editor{width:100%;box-sizing:border-box;min-height:120px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,165,116,0.18);color:var(--bone);font-family:'Inter',sans-serif;font-size:14px;line-height:1.7;padding:14px 16px;outline:none}
+  .adm-rich-editor:focus{border-color:rgba(212,165,116,0.45)}
+  .adm-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:rgba(212,165,116,0.15);border:1px solid rgba(212,165,116,0.4);color:var(--gold-bright);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.25em;padding:12px 28px;z-index:99999;pointer-events:none;animation:toastIn 300ms ease,toastOut 300ms ease 1.7s forwards}
+  @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  @keyframes toastOut{to{opacity:0}}
+  .adm-progress-bar{height:3px;background:rgba(212,165,116,0.12);overflow:hidden;margin-top:8px}
+  .adm-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold-bright));transition:width 300ms ease}
+  .adm-stat{padding:20px 24px;border:1px solid rgba(212,165,116,0.15);background:rgba(255,255,255,0.02)}
+  .adm-stat-num{font-family:'Fraunces',serif;font-size:36px;font-weight:300;color:var(--gold-bright);line-height:1;margin-bottom:6px}
+  .adm-stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.3em;color:var(--bone-dim)}
+  .adm-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:var(--gold);border:1px solid rgba(212,165,116,0.25);margin:3px}
+  .adm-tag button{background:none;border:none;color:var(--bone-dim);cursor:pointer;padding:0;font-size:11px;line-height:1}
+  .adm-tag button:hover{color:#e05555}
+  /* video slider */
+  .vid-slider{position:relative;width:100%;height:100%;overflow:hidden}
+  .vid-slide{position:absolute;inset:0;transition:opacity 400ms ease}
+  .vid-slide iframe,.vid-slide video{width:100%;height:100%;border:none;display:block}
+  .vid-nav-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:10;background:rgba(0,0,0,0.55);border:1px solid rgba(212,165,116,0.35);color:var(--gold-bright);width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:all 200ms}
+  .vid-nav-btn:hover{background:rgba(212,165,116,0.2);border-color:rgba(212,165,116,0.7)}
+  .vid-dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:5px;z-index:10}
+  .vid-dot{width:5px;height:5px;border-radius:50%;background:rgba(212,165,116,0.3);cursor:pointer;transition:all 200ms}
+  .vid-dot.active{background:var(--gold-bright);transform:scale(1.3)}
+  /* hex manager */
+  .hex-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid rgba(212,165,116,0.12);margin-bottom:6px;background:rgba(255,255,255,0.02);transition:all 150ms}
+  .hex-row:hover{border-color:rgba(212,165,116,0.25)}
+  .hex-row.hidden-cell{opacity:0.4}
+  .hex-row.draft-cell{border-color:rgba(212,165,116,0.08);border-style:dashed}
+  .hex-badge{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:0.2em;padding:3px 7px;border:1px solid;border-radius:0}
+  .badge-live{color:#6ee09a;border-color:rgba(110,224,154,0.4);background:rgba(110,224,154,0.08)}
+  .badge-draft{color:var(--gold);border-color:rgba(212,165,116,0.3);background:rgba(212,165,116,0.06)}
+  .badge-hidden{color:rgba(185,177,163,0.5);border-color:rgba(185,177,163,0.2);background:transparent}
+
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- ── Data ──────────────────────────────────────────────────────────── -->
+  <script>
+  window.PORTFOLIO_DATA = {
+    artist: {
+      name: "Lea Dimas",
+      nameDisplay: { first: "Lea", last: "Dimas" },
+      role: "Video Editor · Graphic Designer",
+      studio: "STUDIO / 2026",
+      email: "hello@leadimas.studio",
+      availability: "AVAILABLE Q3",
+      year: "MMXXVI",
+      tagline: "PORTFOLIO · HEX FLOW · MMXXVI",
+    },
+
+    social: [
+      { label: "Instagram", url: "#" },
+      { label: "Vimeo",     url: "#" },
+      { label: "Behance",   url: "#" },
+      { label: "Are.na",    url: "#" },
+    ],
+
+    cells: [
+      {
+        id: "intro", col: 0, row: 0, num: "01", label: "Index", type: "intro",
+        content: { kicker: "— PORTFOLIO / 2026", subhead: "Video Editor · Graphic Designer" },
+        detail: { title: "Lea Dimas — a studio of one.",
+                  body: "I direct, edit, and design — building visual identities that move." },
+      },
+      {
+        id: "about", col: 0, row: -1, num: "02", label: "About", type: "about",
+        content: { title: "About", titleAccent: "the work",
+                   sub: "Cinematic rhythm meets editorial restraint." },
+        detail: { title: "Structure for brands. Rhythm for stories.",
+                  body: "Editorial discipline meets the cutting room — brands read confidently in motion as on a page." },
+      },
+      {
+        id: "video", col: 1, row: -0.5, num: "03", label: "Video Editing", type: "video",
+        content: { title: "Video", titleAccent: "Editing" },
+        detail: { title: "Cuts that breathe. Pacing that builds.",
+                  body: "Short-form campaign edits to long-form documentary, prioritizing restraint." },
+      },
+      {
+        id: "graphic", col: -1, row: -0.5, num: "04", label: "Graphic Design", type: "graphic",
+        content: { title: "Graphic", titleAccent: "Design" },
+        detail: { title: "Identities, type, and editorial systems.",
+                  body: "Logomarks, layout grids, art direction — a bias toward serif type and quietly confident composition." },
+      },
+      {
+        id: "cv", col: -1, row: 0.5, num: "05", label: "CV — Resume", type: "cv",
+        content: {
+          title: "Curriculum", titleAccent: "Vitae",
+          items: ["2024 — STUDIO", "2022 — FREELANCE", "2020 — ÉCOLE"],
+        },
+        detail: { title: "Six years across studios and freelance practice.",
+                  body: "Studio Meridian (2024–). Freelance (2022–2024). École de l'Image (2020). Available on request." },
+      },
+      {
+        id: "process", col: 1, row: 0.5, num: "06", label: "Process", type: "process",
+        content: { title: "The", titleAccent: "Process",
+                   sub: "Brief → Mood → Cut → Color → Final." },
+        detail: { title: "Five stages, one cohesive arc.",
+                  body: "Brief, mood, cut, color, finish — each phase intentionally bounded so the work clears its own sky." },
+      },
+      {
+        id: "contact", col: 0, row: 1, num: "07", label: "Contact", type: "contact",
+        content: { title: "Let's", line2: "make", line3: "something." },
+        detail: { title: "Open for new work — Q3 2026 onward.",
+                  body: "Best by email or a slow letter. I read everything; I reply within 48 hours." },
+      },
+      {
+        id: "selected", col: 2, row: 0, num: "08", label: "Selected Work", type: "selected",
+        content: { title: "Selected", titleAccent: "Work",
+                   items: ["NOVA — 2025", "SOLAR — 2025", "SONIC — 2024"] },
+        detail: { title: "Recent selected work.",
+                  body: "NOVA, SOLAR, SONIC — campaign films and identities, 2024–2025." },
+      },
+      {
+        id: "archive", col: -2, row: 0, num: "09", label: "Archive", type: "archive",
+        content: { title: "The", titleAccent: "Archive",
+                   sub: "2018 → 2024 — earlier projects, on request." },
+        detail: { title: "Earlier work, 2018 → 2024.",
+                  body: "Available on request — write for a private viewing link." },
+      },
+    ],
+
+    sounds: {
+      enabled: true,
+      volume: 1,
+      activePreset: "gold",
+      presets: {
+        gold: {
+          hover: { freq: 880, dur: 0.05, type: "sine",     gain: 0.015 },
+          click: [{ freq: 320, dur: 0.18, type: "triangle", gain: 0.05 },
+                  { freq: 540, dur: 0.12, type: "sine",     gain: 0.03, delay: 60 }],
+          lock:  { freq: 1200, dur: 0.04, type: "square",  gain: 0.012 },
+        },
+        wire: {
+          hover: { freq: 1400, dur: 0.03, type: "square",  gain: 0.012 },
+          click: [{ freq: 220, dur: 0.08, type: "square",   gain: 0.04 },
+                  { freq: 440, dur: 0.06, type: "square",   gain: 0.03, delay: 40 }],
+          lock:  { freq: 2000, dur: 0.02, type: "square",  gain: 0.01  },
+        },
+        film: {
+          hover: { freq: 220, dur: 0.06, type: "sawtooth", gain: 0.02 },
+          click: [{ freq: 110, dur: 0.22, type: "sawtooth", gain: 0.06 }],
+          lock:  { freq: 180, dur: 0.05, type: "triangle", gain: 0.02 },
+        },
+        off: null,
+      },
+    },
+  };
+  </script>
+
+  <!-- ── Sound engine ──────────────────────────────────────────────────── -->
+  <script>
+  (function () {
+    let _ctx = null;
+    function ctx() {
+      if (!_ctx) {
+        try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch(e) { _ctx = null; }
+      }
+      if (_ctx && _ctx.state === "suspended") _ctx.resume();
+      return _ctx;
+    }
+
+    function tone(spec) {
+      const c = ctx();
+      if (!c || !spec) return;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = spec.type || "sine";
+      o.frequency.setValueAtTime(spec.freq || 440, c.currentTime);
+      g.gain.setValueAtTime(0, c.currentTime);
+      const vol = window.PORTFOLIO_DATA?.sounds?.volume ?? 1;
+      g.gain.linearRampToValueAtTime((spec.gain ?? 0.03) * vol, c.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + (spec.dur || 0.1));
+      o.connect(g).connect(c.destination);
+      o.start();
+      o.stop(c.currentTime + (spec.dur || 0.1) + 0.02);
+    }
+
+    function play(eventName) {
+      const cfg = window.PORTFOLIO_DATA?.sounds;
+      if (!cfg || !cfg.enabled) return;
+      const preset = cfg.presets?.[cfg.activePreset];
+      if (!preset) return;
+      const spec = preset[eventName];
+      if (!spec) return;
+      if (Array.isArray(spec)) {
+        spec.forEach(s => {
+          if (s.delay) setTimeout(() => tone(s), s.delay);
+          else tone(s);
+        });
+      } else {
+        tone(spec);
+      }
+    }
+
+    window.SFX = {
+      hover: () => play("hover"),
+      click: () => play("click"),
+      lock:  () => play("lock"),
+      setPreset: (name) => {
+        if (window.PORTFOLIO_DATA?.sounds?.presets[name] !== undefined) {
+          window.PORTFOLIO_DATA.sounds.activePreset = name;
+          window.PORTFOLIO_DATA.sounds.enabled = name !== "off";
+        }
+      },
+      getPreset: () => window.PORTFOLIO_DATA?.sounds?.activePreset,
+      setVolume: (v) => {
+        if (window.PORTFOLIO_DATA?.sounds) window.PORTFOLIO_DATA.sounds.volume = v;
+      },
+    };
+  })();
+  </script>
+
+  <!-- ── Tweaks panel ──────────────────────────────────────────────────── -->
+  <script type="text/babel">
+  const __TWEAKS_STYLE = `
+    .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+      max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+      transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+      background:rgba(250,249,247,.78);color:#29261b;
+      -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+      border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+      box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+      font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+    .twk-hd{display:flex;align-items:center;justify-content:space-between;
+      padding:10px 8px 10px 14px;cursor:move;user-select:none}
+    .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+    .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+      width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+    .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+    .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+      overflow-y:auto;overflow-x:hidden;min-height:0;
+      scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+    .twk-body::-webkit-scrollbar{width:8px}
+    .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+    .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+      border:2px solid transparent;background-clip:content-box}
+    .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+      border:2px solid transparent;background-clip:content-box}
+    .twk-row{display:flex;flex-direction:column;gap:5px}
+    .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+    .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+      color:rgba(41,38,27,.72)}
+    .twk-lbl>span:first-child{font-weight:500}
+    .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+    .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+      color:rgba(41,38,27,.45);padding:10px 0 0}
+    .twk-sect:first-child{padding-top:0}
+    .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+      border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+      background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+    .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+    select.twk-field{padding-right:22px;
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+      background-repeat:no-repeat;background-position:right 8px center}
+    .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+      border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+    .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+      width:14px;height:14px;border-radius:50%;background:#fff;
+      border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+    .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+      background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+    .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+      background:rgba(0,0,0,.06);user-select:none}
+    .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+      background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+      transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+    .twk-seg.dragging .twk-seg-thumb{transition:none}
+    .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+      background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+      border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;overflow-wrap:anywhere}
+    .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+      background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+    .twk-toggle[data-on="1"]{background:#34c759}
+    .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+      background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+    .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+    .twk-num{display:flex;align-items:center;height:26px;padding:0 0 0 8px;
+      border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+    .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+      user-select:none;padding-right:8px}
+    .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+      font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+      outline:none;color:inherit;-moz-appearance:textfield}
+    .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+      -webkit-appearance:none;margin:0}
+    .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+    .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+      background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+    .twk-btn:hover{background:rgba(0,0,0,.88)}
+    .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+    .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+    .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+      border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+      background:transparent;flex-shrink:0}
+    .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+    .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+    .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+    .twk-chips{display:flex;gap:6px}
+    .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+      padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+      box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
+      transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
+    .twk-chip:hover{transform:translateY(-1px);
+      box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
+    .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),0 2px 6px rgba(0,0,0,.15)}
+    .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
+      display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
+    .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
+    .twk-chip>span>i:first-child{box-shadow:none}
+    .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+      filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+  `;
+
+  function useTweaks(defaults) {
+    const [values, setValues] = React.useState(defaults);
+    const setTweak = React.useCallback((keyOrEdits, val) => {
+      const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+        ? keyOrEdits : { [keyOrEdits]: val };
+      setValues((prev) => ({ ...prev, ...edits }));
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+      window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+    }, []);
+    return [values, setTweak];
+  }
+
+  function TweaksPanel({ title = 'Tweaks', children }) {
+    const [open, setOpen] = React.useState(false);
+    const dragRef = React.useRef(null);
+    const offsetRef = React.useRef({ x: 16, y: 16 });
+    const PAD = 16;
+
+    const clampToViewport = React.useCallback(() => {
+      const panel = dragRef.current;
+      if (!panel) return;
+      const w = panel.offsetWidth, h = panel.offsetHeight;
+      const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+      const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+      offsetRef.current = {
+        x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+        y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+      };
+      panel.style.right = offsetRef.current.x + 'px';
+      panel.style.bottom = offsetRef.current.y + 'px';
+    }, []);
+
+    React.useEffect(() => {
+      if (!open) return;
+      clampToViewport();
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', clampToViewport);
+        return () => window.removeEventListener('resize', clampToViewport);
+      }
+      const ro = new ResizeObserver(clampToViewport);
+      ro.observe(document.documentElement);
+      return () => ro.disconnect();
+    }, [open, clampToViewport]);
+
+    React.useEffect(() => {
+      const onMsg = (e) => {
+        const t = e?.data?.type;
+        if (t === '__activate_edit_mode') setOpen(true);
+        else if (t === '__deactivate_edit_mode') setOpen(false);
+      };
+      window.addEventListener('message', onMsg);
+      window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+      return () => window.removeEventListener('message', onMsg);
+    }, []);
+
+    const dismiss = () => {
+      setOpen(false);
+      window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+    };
+
+    const onDragStart = (e) => {
+      const panel = dragRef.current;
+      if (!panel) return;
+      const r = panel.getBoundingClientRect();
+      const sx = e.clientX, sy = e.clientY;
+      const startRight = window.innerWidth - r.right;
+      const startBottom = window.innerHeight - r.bottom;
+      const move = (ev) => {
+        offsetRef.current = {
+          x: startRight - (ev.clientX - sx),
+          y: startBottom - (ev.clientY - sy),
+        };
+        clampToViewport();
+      };
+      const up = () => {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('mouseup', up);
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
+    };
+
+    if (!open) return null;
+    return (
+      <>
+        <style>{__TWEAKS_STYLE}</style>
+        <div ref={dragRef} className="twk-panel" data-noncommentable=""
+             style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+          <div className="twk-hd" onMouseDown={onDragStart}>
+            <b>{title}</b>
+            <button className="twk-x" aria-label="Close tweaks"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={dismiss}>✕</button>
+          </div>
+          <div className="twk-body">{children}</div>
+        </div>
+      </>
+    );
+  }
+
+  function TweakSection({ label, children }) {
+    return (
+      <>
+        <div className="twk-sect">{label}</div>
+        {children}
+      </>
+    );
+  }
+
+  function TweakRow({ label, value, children, inline = false }) {
+    return (
+      <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+        <div className="twk-lbl">
+          <span>{label}</span>
+          {value != null && <span className="twk-val">{value}</span>}
+        </div>
+        {children}
+      </div>
+    );
+  }
+
+  function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+    return (
+      <TweakRow label={label} value={`${value}${unit}`}>
+        <input type="range" className="twk-slider" min={min} max={max} step={step}
+               value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      </TweakRow>
+    );
+  }
+
+  function TweakToggle({ label, value, onChange }) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+                role="switch" aria-checked={!!value}
+                onClick={() => onChange(!value)}><i /></button>
+      </div>
+    );
+  }
+
+  function TweakRadio({ label, value, options, onChange }) {
+    const trackRef = React.useRef(null);
+    const [dragging, setDragging] = React.useState(false);
+    const valueRef = React.useRef(value);
+    valueRef.current = value;
+
+    const labelLen = (o) => String(typeof o === 'object' ? o.label : o).length;
+    const maxLen = options.reduce((m, o) => Math.max(m, labelLen(o)), 0);
+    const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+
+    if (!fitsAsSegments) {
+      const resolve = (s) => {
+        const m = options.find((o) => String(typeof o === 'object' ? o.value : o) === s);
+        return m === undefined ? s : typeof m === 'object' ? m.value : m;
+      };
+      return <TweakSelect label={label} value={value} options={options}
+                          onChange={(s) => onChange(resolve(s))} />;
+    }
+
+    const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+    const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+    const n = opts.length;
+
+    const segAt = (clientX) => {
+      const r = trackRef.current.getBoundingClientRect();
+      const inner = r.width - 4;
+      const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+      return opts[Math.max(0, Math.min(n - 1, i))].value;
+    };
+
+    const onPointerDown = (e) => {
+      setDragging(true);
+      const v0 = segAt(e.clientX);
+      if (v0 !== valueRef.current) onChange(v0);
+      const move = (ev) => {
+        if (!trackRef.current) return;
+        const v = segAt(ev.clientX);
+        if (v !== valueRef.current) onChange(v);
+      };
+      const up = () => {
+        setDragging(false);
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+
+    return (
+      <TweakRow label={label}>
+        <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+             className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+          <div className="twk-seg-thumb"
+               style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                        width: `calc((100% - 4px) / ${n})` }} />
+          {opts.map((o) => (
+            <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </TweakRow>
+    );
+  }
+
+  function TweakSelect({ label, value, options, onChange }) {
+    return (
+      <TweakRow label={label}>
+        <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((o) => {
+            const v = typeof o === 'object' ? o.value : o;
+            const l = typeof o === 'object' ? o.label : o;
+            return <option key={v} value={v}>{l}</option>;
+          })}
+        </select>
+      </TweakRow>
+    );
+  }
+
+  function TweakText({ label, value, placeholder, onChange }) {
+    return (
+      <TweakRow label={label}>
+        <input className="twk-field" type="text" value={value} placeholder={placeholder}
+               onChange={(e) => onChange(e.target.value)} />
+      </TweakRow>
+    );
+  }
+
+  function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+    const clamp = (n) => {
+      if (min != null && n < min) return min;
+      if (max != null && n > max) return max;
+      return n;
+    };
+    const startRef = React.useRef({ x: 0, val: 0 });
+    const onScrubStart = (e) => {
+      e.preventDefault();
+      startRef.current = { x: e.clientX, val: value };
+      const decimals = (String(step).split('.')[1] || '').length;
+      const move = (ev) => {
+        const dx = ev.clientX - startRef.current.x;
+        const raw = startRef.current.val + dx * step;
+        const snapped = Math.round(raw / step) * step;
+        onChange(clamp(Number(snapped.toFixed(decimals))));
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+    return (
+      <div className="twk-num">
+        <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+        <input type="number" value={value} min={min} max={max} step={step}
+               onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+        {unit && <span className="twk-num-unit">{unit}</span>}
+      </div>
+    );
+  }
+
+  function __twkIsLight(hex) {
+    const h = String(hex).replace('#', '');
+    const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
+    const n = parseInt(x.slice(0, 6), 16);
+    if (Number.isNaN(n)) return true;
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return r * 299 + g * 587 + b * 114 > 148000;
+  }
+
+  const __TwkCheck = ({ light }) => (
+    <svg viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+            strokeLinecap="round" strokeLinejoin="round"
+            stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+    </svg>
+  );
+
+  function TweakColor({ label, value, options, onChange }) {
+    if (!options || !options.length) {
+      return (
+        <div className="twk-row twk-row-h">
+          <div className="twk-lbl"><span>{label}</span></div>
+          <input type="color" className="twk-swatch" value={value}
+                 onChange={(e) => onChange(e.target.value)} />
+        </div>
+      );
+    }
+    const key = (o) => String(JSON.stringify(o)).toLowerCase();
+    const cur = key(value);
+    return (
+      <TweakRow label={label}>
+        <div className="twk-chips" role="radiogroup">
+          {options.map((o, i) => {
+            const colors = Array.isArray(o) ? o : [o];
+            const [hero, ...rest] = colors;
+            const sup = rest.slice(0, 4);
+            const on = key(o) === cur;
+            return (
+              <button key={i} type="button" className="twk-chip" role="radio"
+                      aria-checked={on} data-on={on ? '1' : '0'}
+                      aria-label={colors.join(', ')} title={colors.join(' · ')}
+                      style={{ background: hero }}
+                      onClick={() => onChange(o)}>
+                {sup.length > 0 && (
+                  <span>
+                    {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                  </span>
+                )}
+                {on && <__TwkCheck light={__twkIsLight(hero)} />}
+              </button>
+            );
+          })}
+        </div>
+      </TweakRow>
+    );
+  }
+
+  function TweakButton({ label, onClick, secondary = false }) {
+    return (
+      <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+              onClick={onClick}>{label}</button>
+    );
+  }
+
+  Object.assign(window, {
+    useTweaks, TweaksPanel, TweakSection, TweakRow,
+    TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+    TweakText, TweakNumber, TweakColor, TweakButton,
+  });
+  </script>
+
+  <!-- ── Hex content renderer ───────────────────────────────────────────── -->
+  <script type="text/babel">
+  const HEX_CLIP_INNER = "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)";
+
+  function HexContent({ cell, isHover }) {
+    const c = cell.content || {};
+
+    const numEl = (
+      <div style={{
+        position: "absolute", top: "16%", left: "22%",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: 11, letterSpacing: "0.25em",
+        color: "var(--gold)", opacity: 0.85,
+      }}>— {cell.num}</div>
+    );
+    const labelEl = (
+      <div style={{
+        position: "absolute", bottom: "16%", right: "22%",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase",
+        color: "var(--bone-dim)",
+      }}>{cell.label}</div>
+    );
+
+    const titleBlock = (size = 30, top = "30%") => (
+      <div style={{
+        position: "absolute", top, left: "22%", right: "22%",
+        fontFamily: "Fraunces, serif", fontWeight: 300, fontSize: size, lineHeight: 1,
+        letterSpacing: "-0.02em", color: "var(--bone)",
+      }}>
+        {c.title}{c.titleAccent ? <><br/><em style={{ color: "var(--gold-bright)", fontWeight: 400 }}>{c.titleAccent}</em></> : null}
+      </div>
+    );
+
+    const artist = window.PORTFOLIO_DATA?.artist;
+
+    if (cell.type === "intro") {
+      return (
+        <div style={{ position: "absolute", inset: 0, padding: "10% 18%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center" }}>
+          <div style={{ position: "absolute", inset: "12%", borderRadius: "50%", border: "1px solid rgba(212,165,116,0.18)" }} />
+          <div style={{ position: "absolute", inset: "22%", borderRadius: "50%", border: "1px dashed rgba(212,165,116,0.12)" }} />
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: "0.3em", color: "var(--gold)", marginBottom: 18 }}>{c.kicker}</div>
+          <div style={{ fontFamily: "Fraunces, serif", fontWeight: 300, fontSize: 56, lineHeight: 0.95, letterSpacing: "-0.02em", color: "var(--bone)" }}>
+            {artist?.nameDisplay?.first}<br/>
+            <span style={{ fontStyle: "italic", fontWeight: 400, color: "var(--gold-bright)" }}>{artist?.nameDisplay?.last}</span>
+          </div>
+          <div style={{ marginTop: 18, fontFamily: "Inter, sans-serif", fontSize: 12, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--bone-dim)" }}>{c.subhead}</div>
+          <div style={{
+            position: "absolute", bottom: "12%", left: 0, right: 0, textAlign: "center",
+            fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.3em",
+            color: "var(--gold)", opacity: 0.7,
+            animation: "scrollHint 2s ease-in-out infinite",
+          }}>↓ scroll to reveal</div>
+          <style>{`@keyframes scrollHint { 0%,100%{transform:translateY(0);opacity:0.5} 50%{transform:translateY(4px);opacity:0.9} }`}</style>
+        </div>
+      );
+    }
+
+    if (cell.type === "about") {
+      return (
+        <div style={{ position: "absolute", inset: 0 }}>
+          {numEl}
+          {titleBlock(38, "32%")}
+          <div style={{ position: "absolute", bottom: "26%", left: "22%", right: "22%", fontFamily: "Inter, sans-serif", fontSize: 12, lineHeight: 1.65, color: "var(--bone-dim)" }}>{c.sub}</div>
+          {labelEl}
+        </div>
+      );
+    }
+
+    if (cell.type === "video") {
+      const videos = (cell.videos || []).filter(v => v && (v.url || v.blobUrl));
+      return (
+        <div style={{ position: "absolute", inset: 0 }}>
+          {videos.length > 0
+            ? <HexVideoSlider videos={videos} isHover={isHover} />
+            : <>
+                {numEl}
+                <div style={{ position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:64,height:64,borderRadius:"50%",border:"1px solid rgba(212,165,116,0.5)",display:"flex",alignItems:"center",justifyContent:"center",opacity:isHover?1:0.55,transition:"opacity 300ms ease" }}>
+                  <div style={{ width:0,height:0,borderLeft:"12px solid var(--gold-bright)",borderTop:"8px solid transparent",borderBottom:"8px solid transparent",marginLeft:4 }} />
+                </div>
+                <div style={{ position:"absolute",bottom:"20%",left:"22%",fontFamily:"Fraunces, serif",fontWeight:300,fontSize:30,lineHeight:1,letterSpacing:"-0.02em",color:"var(--bone)" }}>
+                  {c.title}<br/><em style={{ color:"var(--gold-bright)" }}>{c.titleAccent}</em>
+                </div>
+                {labelEl}
+              </>
+          }
+        </div>
+      );
+    }
+
+    if (cell.type === "graphic") {
+      return <GraphicHexContent cell={cell} c={c} numEl={numEl} labelEl={labelEl} />;
+    }
+
+    if (cell.type === "cv" || cell.type === "selected") {
+      return (
+        <div style={{ position: "absolute", inset: 0 }}>
+          {numEl}
+          {titleBlock(cell.type === "cv" ? 30 : 26)}
+          <div style={{ position: "absolute", bottom: "22%", left: "22%", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.18em", color: "var(--bone-dim)", display: "flex", flexDirection: "column", gap: 6 }}>
+            {(c.items || []).map((it, i) => <span key={i}>{it}</span>)}
+          </div>
+          {labelEl}
+        </div>
+      );
+    }
+
+    if (cell.type === "contact") {
+      return (
+        <div style={{ position: "absolute", inset: 0 }}>
+          {numEl}
+          <div style={{ position: "absolute", top: "30%", left: "22%", fontFamily: "Fraunces, serif", fontWeight: 300, fontStyle: "italic", fontSize: 30, lineHeight: 1.05, letterSpacing: "-0.01em", color: "var(--bone)" }}>
+            {c.title}<br/>{c.line2}<br/>{c.line3}
+          </div>
+          <div style={{ position: "absolute", bottom: "22%", left: "22%", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.2em", color: "var(--gold)" }}>
+            {(window.PORTFOLIO_DATA?.artist?.email || "").toUpperCase()}
+          </div>
+          {labelEl}
+        </div>
+      );
+    }
+
+    if (cell.type === "process" || cell.type === "archive") {
+      return (
+        <div style={{ position: "absolute", inset: 0 }}>
+          {numEl}
+          {titleBlock(28)}
+          <div style={{ position: "absolute", bottom: "22%", left: "22%", right: "22%", fontFamily: "Inter, sans-serif", fontSize: 11, lineHeight: 1.6, color: "var(--bone-dim)" }}>
+            {c.sub}
+          </div>
+          {labelEl}
+        </div>
+      );
+    }
+
+    return null;
+  }
+
+
+  /* ── Video Slider inside hex cell ──────────────────────────────── */
+  function getEmbedUrl(raw) {
+    if (!raw) return null;
+    // YouTube
+    let m = raw.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([-\w]+)/);
+    if (m) return "https://www.youtube.com/embed/" + m[1] + "?autoplay=0&rel=0&modestbranding=1";
+    // Vimeo
+    m = raw.match(/vimeo\.com\/(\d+)/);
+    if (m) return "https://player.vimeo.com/video/" + m[1] + "?title=0&byline=0&portrait=0";
+    return raw; // direct URL
+  }
+
+  /* ── getYouTubeThumb: fallback thumbnail from YT ── */
+  function getYouTubeId(raw) {
+    const m = raw.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([-\w]+)/);
+    return m ? m[1] : null;
+  }
+  function getVimeoId(raw) {
+    const m = raw.match(/vimeo\.com\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  /* Shared state so ExpandedDetail syncs with the slider */
+  window.__vidState   = { idx: 0, listeners: [] };
+  window.__photoState = { idx: 0, listeners: [] };
+  function setGlobalPhotoIdx(i) {
+    window.__photoState.idx = i;
+    window.__photoState.listeners.forEach(fn => fn(i));
+  }
+  function setGlobalVidIdx(i) {
+    window.__vidState.idx = i;
+    window.__vidState.listeners.forEach(fn => fn(i));
+  }
+
+  function HexVideoSlider({ videos, isHover }) {
+    const [idx, setIdx] = React.useState(window.__vidState.idx);
+    const n = videos.length;
+
+    const go = (i) => {
+      const ni = ((i % n) + n) % n;
+      setIdx(ni);
+      setGlobalVidIdx(ni);
+    };
+    const prev = (e) => { e.stopPropagation(); go(idx - 1); };
+    const next = (e) => { e.stopPropagation(); go(idx + 1); };
+
+    const vid = videos[Math.min(idx, n - 1)] || {};
+
+    /* thumbnail */
+    let thumbSrc = vid.thumb || null;
+    if (!thumbSrc && vid.url) {
+      const ytId = getYouTubeId(vid.url);
+      if (ytId) thumbSrc = "https://img.youtube.com/vi/" + ytId + "/hqdefault.jpg";
+    }
+
+    return (
+      <div className="vid-slider">
+        {/* ── background thumbnail (fills hex, dimmed) ── */}
+        {thumbSrc
+          ? <img src={thumbSrc} alt={vid.title||""} style={{ position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block",opacity:0.45 }} />
+          : <div style={{ position:"absolute",inset:0,background:"linear-gradient(160deg,#0c0b09,#050505)" }}/>
+        }
+        {/* gradient overlay so text stays readable */}
+        <div style={{ position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.55) 100%)" }}/>
+
+        {/* ── labels on top ── */}
+        <div style={{ position:"absolute",top:"16%",left:"22%",fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.22em",color:"var(--gold)",opacity:0.85 }}>— 03</div>
+        <div style={{ position:"absolute",bottom:"28%",left:"22%",right:"22%",zIndex:5,pointerEvents:"none" }}>
+          <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:26,lineHeight:1,letterSpacing:"-0.02em",color:"var(--bone)" }}>Video</div>
+          <em style={{ fontFamily:"Fraunces,serif",fontSize:26,color:"var(--gold-bright)",fontWeight:400 }}>Editing</em>
+        </div>
+        {/* subtitle: video title */}
+        <div style={{ position:"absolute",bottom:"16%",left:"22%",right:"22%",fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.15em",color:"rgba(185,177,163,0.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+          {vid.title||""}
+        </div>
+        <div style={{ position:"absolute",bottom:"16%",right:"22%",fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"var(--bone-dim)" }}>Video Editing</div>
+
+        {/* ── Nav arrows ── */}
+        {n > 1 && <>
+          <button className="vid-nav-btn" style={{ left:5,zIndex:10 }} onClick={prev}>‹</button>
+          <button className="vid-nav-btn" style={{ right:5,zIndex:10 }} onClick={next}>›</button>
+          <div className="vid-dots" style={{ zIndex:10,bottom:6 }}>
+            {videos.map((_, i) => (
+              <div key={i} className={"vid-dot"+(i===idx?" active":"")}
+                onClick={e=>{e.stopPropagation();go(i);}} />
+            ))}
+          </div>
+          <div style={{ position:"absolute",top:7,left:8,fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.12em",color:"rgba(212,165,116,0.6)",zIndex:10,background:"rgba(0,0,0,0.45)",padding:"2px 5px" }}>{idx+1}/{n}</div>
+        </>}
+      </div>
+    );
+  }
+  window.HexVideoSlider = HexVideoSlider;
+
+  /* ── GraphicHexContent — stateful, lives inside hex ── */
+  function GraphicHexContent({ cell, c, numEl, labelEl }) {
+    const photos  = (cell.photos || []).slice(0, 6);
+    const isExp   = !!cell.__expanded;
+    const [selIdx, setSelIdx] = React.useState(-1);
+
+    /* reset selection when hex closes */
+    React.useEffect(() => {
+      if (!isExp) {
+        setSelIdx(-1);
+        window.__photoState.idx = -1;
+      }
+    }, [isExp]);
+
+    const select = (e, i) => {
+      e.stopPropagation();
+      if (!isExp) return;
+      const photo = photos[i];
+      if (!photo) return;
+      const next = selIdx === i ? -1 : i;   // toggle off on second click
+      setSelIdx(next);
+      setGlobalPhotoIdx(next);
+    };
+
+    /* ── NOT expanded: static 6 squares + text ── */
+    if (!isExp) {
+      return (
+        <div style={{ position:"absolute", inset:0 }}>
+          {numEl}
+          <div style={{ position:"absolute", top:"30%", left:"20%", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:3, width:"60%" }}>
+            {[0,1,2,3,4,5].map(i => {
+              const photo = photos[i];
+              return (
+                <div key={i} style={{
+                  aspectRatio:"1", overflow:"hidden",
+                  border:"1px solid rgba(212,165,116,0.12)",
+                  background: photo ? "transparent" : (i%2===0 ? "linear-gradient(135deg,rgba(212,165,116,0.18),rgba(212,165,116,0.05))" : "rgba(244,237,224,0.04)"),
+                }}>
+                  {photo && <img src={photo.dataUrl} alt="" style={{ width:"100%",height:"100%",objectFit:"cover",display:"block",opacity:0.65 }} />}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ position:"absolute", bottom:"16%", left:"22%", fontFamily:"Fraunces, serif", fontWeight:300, fontSize:26, lineHeight:1, letterSpacing:"-0.02em", color:"var(--bone)" }}>
+            {c.title}<br/><em style={{ color:"var(--gold-bright)" }}>{c.titleAccent}</em>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── EXPANDED, nothing selected: 6 large clickable squares ── */
+    if (selIdx < 0 || selIdx >= photos.length) {
+      const hasPhotos = photos.length > 0;
+      return (
+        <div style={{ position:"absolute", inset:0 }}>
+          <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gridTemplateRows:"1fr 1fr", gap:3, padding:"12% 18%" }}>
+            {[0,1,2,3,4,5].map(i => {
+              const photo = photos[i];
+              return (
+                <div key={i}
+                  onClick={e => select(e, i)}
+                  style={{
+                    overflow:"hidden", position:"relative",
+                    border: photo ? "1px solid rgba(212,165,116,0.35)" : "1px solid rgba(212,165,116,0.1)",
+                    background: photo ? "transparent" : (i%2===0 ? "linear-gradient(135deg,rgba(212,165,116,0.12),rgba(212,165,116,0.03))" : "rgba(244,237,224,0.03)"),
+                    cursor: photo ? "pointer" : "default",
+                    transition:"border-color 180ms, opacity 180ms",
+                  }}
+                  onMouseEnter={e => { if(photo) e.currentTarget.style.borderColor="rgba(212,165,116,0.8)"; }}
+                  onMouseLeave={e => { if(photo) e.currentTarget.style.borderColor="rgba(212,165,116,0.35)"; }}>
+                  {photo && (
+                    <>
+                      <img src={photo.dataUrl} alt={photo.title||""} style={{ width:"100%",height:"100%",objectFit:"cover",display:"block",transition:"transform 250ms" }}
+                        onMouseEnter={e=>e.currentTarget.style.transform="scale(1.06)"}
+                        onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} />
+                      {/* index dot */}
+                      <div style={{ position:"absolute",top:4,left:5,fontFamily:"JetBrains Mono,monospace",fontSize:7,letterSpacing:"0.1em",color:"rgba(212,165,116,0.7)",background:"rgba(0,0,0,0.5)",padding:"1px 4px" }}>{i+1}</div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {hasPhotos && (
+            <div style={{ position:"absolute",bottom:"6%",left:0,right:0,textAlign:"center",fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.2em",color:"rgba(212,165,116,0.45)",pointerEvents:"none" }}>
+              — CLIQUER UNE CRÉATION —
+            </div>
+          )}
+          {!hasPhotos && (
+            <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8 }}>
+              <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:26,color:"var(--bone)" }}>{c.title}</div>
+              <em style={{ fontFamily:"Fraunces,serif",fontSize:22,color:"var(--gold-bright)" }}>{c.titleAccent}</em>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ── EXPANDED, one selected: big photo + mini strip ── */
+    const photo = photos[selIdx];
+    const others = photos.map((p, i) => ({ p, i })).filter(({ i }) => i !== selIdx);
+
+    return (
+      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column" }}>
+        {/* big photo area */}
+        <div style={{ flex:1, position:"relative", overflow:"hidden", background:"#050403" }}
+          onClick={e => { e.stopPropagation(); setSelIdx(-1); setGlobalPhotoIdx(-1); }}>
+          <img src={photo.dataUrl} alt={photo.title||""}
+            style={{
+              position:"absolute", top:"50%", left:"50%",
+              transform:"translate(-50%,-50%)",
+              /* respect real pixel size but cap at container */
+              maxWidth:"90%", maxHeight:"85%",
+              width:"auto", height:"auto",
+              objectFit:"contain", display:"block",
+              boxShadow:"0 4px 32px rgba(0,0,0,0.6)",
+            }} />
+          {/* title overlay */}
+          {photo.title && (
+            <div style={{ position:"absolute",bottom:8,left:10,right:10,fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.18em",color:"rgba(212,165,116,0.8)",background:"rgba(0,0,0,0.55)",padding:"4px 8px",textAlign:"center" }}>
+              {photo.title}{photo.year ? " — "+photo.year : ""}
+            </div>
+          )}
+          {/* close hint */}
+          <div style={{ position:"absolute",top:6,right:8,fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.15em",color:"rgba(212,165,116,0.45)",background:"rgba(0,0,0,0.4)",padding:"2px 6px" }}>✕</div>
+        </div>
+
+        {/* mini strip of others */}
+        {others.length > 0 && (
+          <div style={{ flexShrink:0, display:"flex", gap:2, padding:"4px 4px", background:"rgba(0,0,0,0.5)", borderTop:"1px solid rgba(212,165,116,0.1)", height:42, overflowX:"auto" }}>
+            {others.map(({ p, i }) => (
+              <div key={p.id} onClick={e => select(e, i)}
+                style={{ height:"100%", aspectRatio:"1", flexShrink:0, overflow:"hidden", cursor:"pointer", border:"1px solid rgba(212,165,116,0.2)", transition:"border-color 150ms, opacity 150ms", opacity:0.6 }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--gold-bright)";e.currentTarget.style.opacity="1";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(212,165,116,0.2)";e.currentTarget.style.opacity="0.6";}}>
+                <img src={p.dataUrl} alt="" style={{ width:"100%",height:"100%",objectFit:"cover",display:"block" }} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  window.HexContent = HexContent;
+  </script>
+
+  <!-- ── App ───────────────────────────────────────────────────────────── -->
+  <script type="text/babel">
+  const { useState, useEffect, useRef, useMemo } = React;
+  const HexContent = window.HexContent;
+  const SFX = window.SFX;
+  const DATA = window.PORTFOLIO_DATA;
+  const { TweaksPanel, TweakSection, TweakRadio, TweakSlider, TweakToggle, TweakSelect, TweakColor, useTweaks } = window;
+
+  const TWEAK_DEFAULTS = {
+    mood: "editorial",
+    palette: ["#e8b560", "#8a6635", "#f4ede0"],
+    layout: "honeycomb",
+    shape: "hexFlat",
+    hexSize: 340,
+    spacing: 1.0,
+    drama: 0.55,
+    tempo: 1.0,
+    hoverStyle: "gold",
+    background: "noir",
+    typePair: "fraunces-inter",
+    grain: 0.35,
+    vignette: 0.4,
+    stroke: 1.5,
+    showBgHexes: true,
+    showSidetext: true,
+    showHints: true,
+    volume: 0.6,
+  };
+
+  const MOOD_PRESETS = {
+    editorial: {
+      bg: "radial-gradient(1200px 800px at 20% 10%, rgba(212,165,116,0.06), transparent 60%), radial-gradient(900px 700px at 90% 80%, rgba(212,165,116,0.04), transparent 60%), #050505",
+      bone: "#f4ede0", boneDim: "#b9b1a3",
+    },
+    cinematic: {
+      bg: "radial-gradient(900px 700px at 50% 50%, rgba(70,40,20,0.5), transparent 60%), radial-gradient(600px 500px at 15% 85%, rgba(180,90,40,0.18), transparent 70%), #0a0604",
+      bone: "#e8dcc4", boneDim: "#9a8c72",
+    },
+    brutalist: {
+      bg: "linear-gradient(180deg, #050505 0%, #050505 100%)",
+      bone: "#ffffff", boneDim: "#888888",
+    },
+    paper: {
+      bg: "radial-gradient(1200px 800px at 50% 30%, #f4ede0 0%, #e8dfc8 60%, #c9bfa3 100%)",
+      bone: "#1a1612", boneDim: "#5a4f3d",
+    },
+    void: {
+      bg: "#000000",
+      bone: "#ffffff", boneDim: "#666666",
+    },
+  };
+
+  const BG_PRESETS = {
+    noir:     "radial-gradient(1200px 800px at 20% 10%, rgba(212,165,116,0.06), transparent 60%), radial-gradient(900px 700px at 90% 80%, rgba(212,165,116,0.04), transparent 60%), #050505",
+    paper:    "radial-gradient(1200px 800px at 50% 30%, #f4ede0 0%, #e8dfc8 60%, #c9bfa3 100%)",
+    void:     "#000000",
+    sepia:    "linear-gradient(180deg, #1a1006 0%, #0a0603 100%)",
+    midnight: "linear-gradient(180deg, #02060d 0%, #050a14 50%, #02060d 100%)",
+    ember:    "radial-gradient(900px 700px at 50% 50%, rgba(70,40,20,0.5), transparent 60%), #0a0604",
+  };
+
+  const TYPE_PAIRS = {
+    "fraunces-inter":    { display: "Fraunces, serif",            body: "Inter, sans-serif",            italic: "italic" },
+    "playfair-mono":     { display: "Playfair Display, serif",    body: "JetBrains Mono, monospace",    italic: "italic" },
+    "mono-everywhere":   { display: "JetBrains Mono, monospace",  body: "JetBrains Mono, monospace",    italic: "normal" },
+    "spectral-inter":    { display: "Spectral, serif",            body: "Inter, sans-serif",            italic: "italic" },
+    "fraunces-fraunces": { display: "Fraunces, serif",            body: "Fraunces, serif",              italic: "italic" },
+  };
+
+  const SHAPE_CLIPS = {
+    hexFlat:   "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)",
+    hexPointy: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+    octagon:   "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+    diamond:   "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+    circle:    "circle(50% at 50% 50%)",
+    square:    "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+  };
+
+  const HEX_CLIP = "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)";
+
+  function hexToRgb(hex) {
+    const h = hex.replace("#","");
+    const n = parseInt(h.length === 3 ? h.split("").map(c=>c+c).join("") : h, 16);
+    return `${(n>>16)&255}, ${(n>>8)&255}, ${n&255}`;
+  }
+
+  function applyTweaksCSS(t) {
+    const r = document.documentElement;
+    const mood = MOOD_PRESETS[t.mood] || MOOD_PRESETS.editorial;
+    const pair = TYPE_PAIRS[t.typePair] || TYPE_PAIRS["fraunces-inter"];
+    const bg = BG_PRESETS[t.background] || mood.bg;
+    document.body.style.background = bg;
+
+    const accent    = (t.palette && t.palette[0]) || "#e8b560";
+    const accentDeep = (t.palette && t.palette[1]) || "#8a6635";
+    const boneOverride = t.palette && t.palette[2];
+
+    r.style.setProperty("--gold-bright", accent);
+    r.style.setProperty("--gold-deep", accentDeep);
+    r.style.setProperty("--gold", accent);
+    r.style.setProperty("--bone", boneOverride || mood.bone);
+    r.style.setProperty("--bone-dim", mood.boneDim);
+    r.style.setProperty("--mood-serif", pair.display);
+    r.style.setProperty("--mood-body", pair.body);
+    r.style.setProperty("--mood-italic", pair.italic);
+    r.style.setProperty("--mood-grain", t.grain);
+    r.style.setProperty("--mood-vignette", t.vignette);
+    r.style.setProperty("--mood-stroke", t.stroke + "px");
+    r.style.setProperty("--line", `rgba(${hexToRgb(accent)}, 0.18)`);
+    r.style.setProperty("--line-strong", `rgba(${hexToRgb(accent)}, 0.45)`);
+    r.style.setProperty("--tempo", t.tempo);
+  }
+
+  function getGeometry(hexSize, spacing, shape) {
+    const HEX_H = hexSize;
+    const HEX_W = shape === "hexPointy"
+      ? HEX_H / (2 / Math.sqrt(3))
+      : HEX_H * 2 / Math.sqrt(3);
+    const HSTEP = (shape === "hexPointy" ? HEX_W : HEX_W * 0.75) * spacing;
+    const VSTEP = (shape === "hexPointy" ? HEX_H * 0.75 : HEX_H) * spacing;
+    return { HEX_W, HEX_H, HSTEP, VSTEP };
+  }
+
+  /* Live cells: admin can add/hide/reorder */
+  function getLiveCells() {
+    const stored = window.__LIVE_CELLS;
+    if (stored && stored.length) return stored.filter(c => !c.hidden);
+    return DATA.cells;
+  }
+
+  const CELLS_BY_LAYOUT_FN = (cells) => ({
+    honeycomb: cells,
+    constellation: cells.map((c, i) => {
+      if (c.id === "intro") return { ...c, col: 0, row: 0 };
+      const ring = i <= 4 ? 1 : 1.9;
+      const idx = i <= 4 ? i - 1 : i - 5;
+      const total = i <= 4 ? 4 : 4;
+      const a = (idx / total) * Math.PI * 2 + (i <= 4 ? 0 : Math.PI / 4);
+      return { ...c, col: Math.cos(a) * ring * 1.4, row: Math.sin(a) * ring * 0.95 };
+    }),
+    cluster: cells.map((c, i) => {
+      const positions = [[0,0],[0.85,-0.4],[-0.85,-0.4],[0.85,0.5],[-0.85,0.5],[0,-1],[0,1],[1.7,0.05],[-1.7,0.05]];
+      const [x,y] = positions[i] || [0,0];
+      return { ...c, col: x, row: y };
+    }),
+    spine:  cells.map((c, i) => ({ ...c, col: (i%2===0?0:(i%4<2?0.9:-0.9)), row: -3+i*0.85 })),
+    spiral: cells.map((c, i) => { if(i===0) return {...c,col:0,row:0}; const a=i*0.9,r=0.55+i*0.18; return {...c,col:Math.cos(a)*r,row:Math.sin(a)*r*0.85}; }),
+    row:    cells.map((c, i) => ({ ...c, col: -3+i*0.85, row: 0 })),
+  });
+
+
+
+  /* ── Loader ─────────────────────────────────────────────────────────── */
+  function Loader({ done }) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 999,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "var(--obsidian)",
+        opacity: done ? 0 : 1, pointerEvents: done ? "none" : "auto",
+        transition: "opacity 700ms ease 200ms",
+      }}>
+        <div style={{ position: "relative", width: 120, height: 138 }}>
+          <svg viewBox="0 0 120 138" width="120" height="138" style={{ position: "absolute", inset: 0 }}>
+            <defs>
+              <linearGradient id="lg" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%"   stopColor="#8a6635"/>
+                <stop offset="50%"  stopColor="#e8b560"/>
+                <stop offset="100%" stopColor="#d4a574"/>
+              </linearGradient>
+            </defs>
+            <polygon points="30,3 90,3 117,69 90,135 30,135 3,69"
+                     fill="none" stroke="url(#lg)" strokeWidth="1.5"
+                     strokeDasharray="420" strokeDashoffset="420"
+                     style={{ animation: "drawHex 1.6s cubic-bezier(.6,.1,.2,1) forwards" }} />
+            <polygon points="50,38 70,38 80,69 70,100 50,100 40,69"
+                     fill="none" stroke="url(#lg)" strokeWidth="1" opacity="0.6"
+                     strokeDasharray="220" strokeDashoffset="220"
+                     style={{ animation: "drawHex 1.6s cubic-bezier(.6,.1,.2,1) 0.3s forwards" }} />
+          </svg>
+          <div style={{
+            position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "JetBrains Mono, monospace", fontSize: 10,
+            letterSpacing: "0.3em", color: "var(--gold)",
+            opacity: 0, animation: "fadeIn 600ms ease 1.4s forwards",
+          }}>LD</div>
+        </div>
+        <div style={{
+          position: "absolute", bottom: 48, left: 0, right: 0, textAlign: "center",
+          fontFamily: "JetBrains Mono, monospace", fontSize: 10,
+          letterSpacing: "0.4em", color: "var(--bone-dim)",
+          opacity: 0, animation: "fadeIn 600ms ease 1.6s forwards",
+        }}>{DATA.artist.name.toUpperCase()} / PORTFOLIO 2026</div>
+        <style>{`
+          @keyframes drawHex { to { stroke-dashoffset: 0; } }
+          @keyframes fadeIn { to { opacity: 1; } }
+        `}</style>
+      </div>
+    );
+  }
+
+  /* ── Hex Cell ───────────────────────────────────────────────────────── */
+  function HexCell({ cell, visible, expandedId, onClick, repelFrom, hovered, setHovered, drama, geo, clip, tweaks }) {
+    const isExpanded = expandedId === cell.id;
+    const isOther    = expandedId && !isExpanded;
+    const isHover    = hovered === cell.id;
+    const { HEX_W, HEX_H, HSTEP, VSTEP } = geo;
+
+    const dirX = cell.col * 700;
+    const dirY = cell.row * 280 - 80;
+
+    const expandScale = 1.2 + drama * 1.0;
+    const repulsion   = 120 + drama * 360;
+    const otherScale  = 0.95 - drama * 0.25;
+    const otherBlur   = drama * 5;
+
+    let repelX = 0, repelY = 0;
+    if (repelFrom && !isExpanded) {
+      const dx = (cell.col * HSTEP) - repelFrom.x;
+      const dy = (cell.row * VSTEP) - repelFrom.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      repelX = (dx / dist) * repulsion;
+      repelY = (dy / dist) * repulsion;
+    }
+
+    const baseX = cell.col * HSTEP;
+    const baseY = cell.row * VSTEP;
+    const hidden = !visible;
+
+    let tx, ty;
+    if (isExpanded) { tx = 0; ty = 0; }
+    else { tx = (baseX + repelX) + (hidden ? dirX : 0); ty = (baseY + repelY) + (hidden ? dirY : 0); }
+
+    const opacity    = hidden ? 0 : (isOther ? Math.max(0.35, 1 - drama * 0.5) : 1);
+    const scale      = isExpanded ? expandScale : (isOther ? otherScale : 1);
+    const blur       = isOther ? otherBlur : 0;
+    const tempo      = tweaks.tempo || 1;
+
+    const hoverStyle = tweaks.hoverStyle || "gold";
+    const hoverEdge  = (() => {
+      if (!isHover && !isExpanded) return "linear-gradient(135deg, rgba(212,165,116,0.55), rgba(212,165,116,0.08) 45%, rgba(212,165,116,0.45))";
+      if (hoverStyle === "gold")   return "linear-gradient(135deg, #d4a574 0%, #f0c98b 35%, #8a6635 65%, #e8b560 100%)";
+      if (hoverStyle === "chrome") return "linear-gradient(135deg, #fff 0%, #888 35%, #222 65%, #fff 100%)";
+      if (hoverStyle === "neon")   return "linear-gradient(135deg, var(--gold-bright), #fff 50%, var(--gold-bright))";
+      if (hoverStyle === "ink")    return "linear-gradient(135deg, #000, #333 50%, #000)";
+      return "linear-gradient(135deg, var(--gold-bright), var(--gold-deep))";
+    })();
+    const hoverShadow = isHover
+      ? `drop-shadow(0 0 ${22 + drama * 30}px rgba(${hexToRgb((tweaks.palette&&tweaks.palette[0])||"#e8b560")},0.45))`
+      : "none";
+
+    return (
+      <div
+        onClick={(e) => { e.stopPropagation(); if (visible) { SFX.click(); onClick(cell); } }}
+        onMouseEnter={() => { if (visible) { SFX.hover(); setHovered(cell.id); } }}
+        onMouseLeave={() => setHovered(null)}
+        style={{
+          position: "absolute",
+          left: "50%", top: "50%",
+          width: HEX_W, height: HEX_H,
+          marginLeft: -HEX_W/2, marginTop: -HEX_H/2,
+          transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
+          transition: `transform ${1100 / tempo}ms cubic-bezier(.2,.7,.2,1), opacity ${700 / tempo}ms ease, filter 400ms ease`,
+          opacity,
+          zIndex: isExpanded ? 60 : (isHover ? 30 : 10),
+          cursor: visible ? "pointer" : "default",
+          filter: blur ? `blur(${blur}px)` : "none",
+        }}
+      >
+        <div style={{
+          position: "absolute", inset: 0, clipPath: clip,
+          background: hoverEdge,
+          transition: "background 400ms ease, filter 400ms ease",
+          filter: hoverShadow,
+        }} />
+        <div style={{
+          position: "absolute", inset: tweaks.stroke || 1.5, clipPath: clip,
+          background: cell.type === "intro"
+            ? "radial-gradient(circle at 30% 20%, #1a1612 0%, #0a0908 60%, #050505 100%)"
+            : (isHover ? "linear-gradient(160deg, #14110d 0%, #0a0907 100%)" : "linear-gradient(160deg, #0c0b09 0%, #060504 100%)"),
+          overflow: "hidden", transition: "background 400ms ease",
+        }}>
+          <HexContent cell={cell} isHover={isHover} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Background decorative hexes ───────────────────────────────────── */
+  function BackgroundHexes({ visible, clip }) {
+    if (!visible) return null;
+    const items = [];
+    for (let r = -2; r <= 2; r++) {
+      for (let c = -3; c <= 3; c++) {
+        if (Math.abs(c) <= 1 && Math.abs(r) <= 1) continue;
+        const x = c * 80 * 0.75;
+        const y = r * 80 + (Math.abs(c) % 2 === 1 ? 40 : 0);
+        items.push({ x, y, key: `${r}_${c}` });
+      }
+    }
+    return (
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.35 }}>
+        {items.map(it => (
+          <div key={it.key} style={{
+            position: "absolute", left: "50%", top: "50%",
+            width: 92, height: 80, marginLeft: -46, marginTop: -40,
+            transform: `translate(${it.x}px, ${it.y}px)`,
+            clipPath: clip,
+            background: "linear-gradient(135deg, rgba(212,165,116,0.07), rgba(212,165,116,0))",
+          }}/>
+        ))}
+      </div>
+    );
+  }
+
+  /* ── Sound Picker ───────────────────────────────────────────────────── */
+  function SoundPicker() {
+    const [preset, setPresetState] = useState(DATA.sounds.activePreset);
+    const presets = [
+      { id: "gold", label: "Gold" },
+      { id: "wire", label: "Wire" },
+      { id: "film", label: "Film" },
+      { id: "off",  label: "Off"  },
+    ];
+    const set = (id) => {
+      SFX.setPreset(id);
+      setPresetState(id);
+      if (id !== "off") SFX.click();
+    };
+    return (
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+        <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 10 }}>— SOUND</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+          {presets.map(p => {
+            const active = preset === p.id;
+            return (
+              <button key={p.id} onClick={() => set(p.id)} style={{
+                background: active ? "rgba(212,165,116,0.14)" : "transparent",
+                border: "1px solid " + (active ? "var(--line-strong)" : "var(--line)"),
+                color: active ? "var(--gold-bright)" : "var(--bone-dim)",
+                fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.2em",
+                padding: "8px 0", cursor: "pointer", textTransform: "uppercase",
+              }}>{p.label}</button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Sidebar ────────────────────────────────────────────────────────── */
+  function Sidebar({ activeId, onJump, revealedCount, navItems }) {
+    return (
+      <aside style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, width: 240, zIndex: 100,
+        borderLeft: "1px solid var(--line)",
+        background: "linear-gradient(180deg, rgba(5,5,5,0.6), rgba(5,5,5,0.92))",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        display: "flex", flexDirection: "column", padding: "32px 28px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 48 }}>
+          <div style={{ width: 28, height: 32, clipPath: HEX_CLIP, background: "linear-gradient(135deg, var(--gold), var(--gold-deep))" }}/>
+          <div>
+            <div style={{ fontFamily: "Fraunces, serif", fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--bone)" }}>{DATA.artist.name}</div>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.2em", color: "var(--gold)", marginTop: 2 }}>
+              {(() => {
+                const s = DATA.artist.studio || "";
+                const last = s.slice(-1);
+                const rest = s.slice(0, -1);
+                return <>{rest}<span
+                  onClick={e => { e.stopPropagation(); window.location.hash = "/admin"; location.reload(); }}
+                  title=""
+                  style={{ cursor: "default", userSelect: "none", color: "var(--gold)" }}
+                >{last}</span></>;
+              })()}
+            </div>
+          </div>
+        </div>
+
+        <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 14 }}>— INDEX</div>
+          {navItems.map((item, i) => {
+            const active   = activeId === item.id;
+            const revealed = i < revealedCount;
+            return (
+              <button key={item.id}
+                onClick={() => revealed && onJump(item.id)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  background: "transparent", border: "none", padding: "10px 0",
+                  color: !revealed ? "rgba(185,177,163,0.25)" : active ? "var(--gold-bright)" : "var(--bone)",
+                  fontFamily: "Fraunces, serif", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em",
+                  cursor: revealed ? "pointer" : "not-allowed",
+                  borderBottom: "1px solid rgba(212,165,116,0.08)",
+                  transition: "color 300ms ease, padding-left 300ms ease",
+                  paddingLeft: active ? 14 : 0, position: "relative", textAlign: "left",
+                }}
+              >
+                {active && <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, background: "var(--gold-bright)", clipPath: HEX_CLIP }}/>}
+                <span>{item.label}</span>
+                <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.15em", color: active ? "var(--gold)" : "rgba(185,177,163,0.4)" }}>{item.num}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <SoundPicker />
+
+        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 10 }}>— ELSEWHERE</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--bone)" }}>
+            {DATA.social.map((s) => (
+              <a key={s.label} href={s.url} style={{ color: "var(--bone)", textDecoration: "none", opacity: 0.75 }}>↗ {s.label}</a>
+            ))}
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  /* ── Top bar ────────────────────────────────────────────────────────── */
+  function TopBar({ revealed, total, expandedId, onClose }) {
+    const progress = (revealed - 1) / Math.max(1, total - 1);
+    return (
+      <div style={{
+        position: "fixed", top: 0, left: 0, right: 240, height: 56, zIndex: 90,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 36px",
+        borderBottom: "1px solid var(--line)",
+        background: "linear-gradient(180deg, rgba(5,5,5,0.7), rgba(5,5,5,0))",
+        backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+      }}>
+        <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.25em", color: "var(--bone-dim)" }}>
+          HEX—FLOW <span style={{ color: "var(--gold)" }}>/ {String(revealed).padStart(2,"0")} of {String(total).padStart(2,"0")}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div style={{ width: 200, height: 1, background: "rgba(212,165,116,0.15)", position: "relative" }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${progress * 100}%`, background: "linear-gradient(90deg, var(--gold-deep), var(--gold-bright))", transition: "width 500ms ease" }} />
+          </div>
+          {expandedId && (
+            <button onClick={onClose} style={{
+              background: "transparent", border: "1px solid var(--line-strong)",
+              color: "var(--gold-bright)",
+              fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.2em",
+              padding: "8px 14px", cursor: "pointer",
+              clipPath: "polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%)",
+            }}>× CLOSE</button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Expanded detail overlay ────────────────────────────────────────── */
+  function ExpandedDetail({ cell }) {
+    if (!cell) return null;
+
+    /* ── Video cell: special layout ── */
+    if (cell.type === "video") {
+      const videos = (cell.videos || []).filter(v => v && (v.url || v.blobUrl));
+      return <VideoExpandedDetail cell={cell} videos={videos} />;
+    }
+
+    /* ── Graphic cell: photo detail ── */
+    if (cell.type === "graphic") {
+      const photos = (cell.photos || []).filter(p => p && p.dataUrl);
+      return <GraphicExpandedDetail cell={cell} photos={photos} />;
+    }
+
+    /* ── Default layout ── */
+    const d = cell.detail || {};
+    return (
+      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+        <div style={{ pointerEvents:"auto",marginBottom:48,maxWidth:720,padding:"28px 36px",background:"rgba(8,7,6,0.85)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both" }}>
+          <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
+          <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:32,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:14 }}>{d.title}</div>
+          <div style={{ fontFamily:"Inter,sans-serif",fontSize:14,lineHeight:1.7,color:"var(--bone-dim)" }} dangerouslySetInnerHTML={{ __html: d.body || "" }} />
+        </div>
+        <style>{`@keyframes fadeUp { from { opacity:0;transform:translateY(24px); } to { opacity:1;transform:translateY(0); } }`}</style>
+      </div>
+    );
+  }
+
+  function VideoExpandedDetail({ cell, videos }) {
+    const [vidIdx, setVidIdx] = React.useState(window.__vidState.idx);
+    const n = videos.length;
+
+    /* sync with hex slider */
+    React.useEffect(() => {
+      const fn = (i) => setVidIdx(i);
+      window.__vidState.listeners.push(fn);
+      return () => { window.__vidState.listeners = window.__vidState.listeners.filter(x => x !== fn); };
+    }, []);
+
+    const go = (i) => {
+      const ni = ((i % n) + n) % n;
+      setVidIdx(ni);
+      setGlobalVidIdx(ni);
+    };
+
+    const vid = videos[Math.min(vidIdx, n - 1)] || {};
+    const embedUrl = vid.url ? getEmbedUrl(vid.url) : null;
+    let autoplayEmbed = embedUrl;
+    if (embedUrl) {
+      if (embedUrl.includes("youtube.com")) autoplayEmbed = embedUrl.replace("autoplay=0","autoplay=1");
+      else if (embedUrl.includes("vimeo.com")) autoplayEmbed = embedUrl + (embedUrl.includes("?")?"&":"?") + "autoplay=1";
+    }
+
+    return (
+      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+        <div style={{
+          pointerEvents:"auto", marginBottom:40,
+          width:"min(860px, calc(100vw - 280px))",
+          background:"rgba(6,5,4,0.92)",
+          backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
+          border:"1px solid var(--line-strong)",
+          animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both",
+          display:"flex", gap:0, overflow:"hidden",
+        }}>
+          {/* ── LEFT: video player ── */}
+          <div style={{ flex:"0 0 52%", position:"relative", background:"#000" }}>
+            {/* aspect-ratio box */}
+            <div style={{ paddingTop:"56.25%", position:"relative" }}>
+              {embedUrl ? (
+                <iframe src={autoplayEmbed} title={vid.title||"video"}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ position:"absolute",inset:0,width:"100%",height:"100%",border:"none" }} />
+              ) : vid.blobUrl ? (
+                <video src={vid.blobUrl} controls autoPlay playsInline
+                  style={{ position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover" }} />
+              ) : (
+                <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(185,177,163,0.3)",fontFamily:"JetBrains Mono,monospace",fontSize:11 }}>Aucune source</div>
+              )}
+            </div>
+            {/* nav below player */}
+            {n > 1 && (
+              <div style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderTop:"1px solid rgba(212,165,116,0.12)" }}>
+                <button onClick={() => go(vidIdx-1)} style={{ background:"transparent",border:"1px solid rgba(212,165,116,0.25)",color:"var(--gold-bright)",width:28,height:28,cursor:"pointer",fontFamily:"JetBrains Mono,monospace",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center" }}>‹</button>
+                <div style={{ display:"flex",gap:5,flex:1,justifyContent:"center" }}>
+                  {videos.map((_,i) => (
+                    <div key={i} onClick={()=>go(i)} style={{ width:6,height:6,borderRadius:"50%",background:i===vidIdx?"var(--gold-bright)":"rgba(212,165,116,0.25)",cursor:"pointer",transition:"all 200ms" }}/>
+                  ))}
+                </div>
+                <button onClick={() => go(vidIdx+1)} style={{ background:"transparent",border:"1px solid rgba(212,165,116,0.25)",color:"var(--gold-bright)",width:28,height:28,cursor:"pointer",fontFamily:"JetBrains Mono,monospace",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center" }}>›</button>
+                <span style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.2em",color:"rgba(185,177,163,0.4)" }}>{vidIdx+1}/{n}</span>
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT: metadata ── */}
+          <div style={{ flex:1,padding:"24px 28px",overflowY:"auto",maxHeight:360,display:"flex",flexDirection:"column",gap:0,borderLeft:"1px solid rgba(212,165,116,0.1)" }}>
+            <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
+
+            {/* Video title */}
+            <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:22,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:10 }}>
+              {vid.title || cell.detail?.title || "Video Editing"}
+            </div>
+
+            {/* Meta fields */}
+            {[
+              ["ANNÉE",    vid.year    || vid.meta?.year    || ""],
+              ["CLIENT",   vid.client  || vid.meta?.client  || ""],
+              ["DURÉE",    vid.duration|| vid.meta?.duration|| ""],
+              ["FORMAT",   vid.format  || vid.meta?.format  || ""],
+            ].filter(([,v]) => v).map(([label, value]) => (
+              <div key={label} style={{ display:"flex",gap:12,marginBottom:7,alignItems:"baseline" }}>
+                <span style={{ fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.25em",color:"var(--gold)",width:56,flexShrink:0 }}>{label}</span>
+                <span style={{ fontFamily:"Inter,sans-serif",fontSize:13,color:"var(--bone-dim)" }}>{value}</span>
+              </div>
+            ))}
+
+            {/* Separator */}
+            <div style={{ height:1,background:"rgba(212,165,116,0.1)",margin:"12px 0" }}/>
+
+            {/* Description */}
+            <div style={{ fontFamily:"Inter,sans-serif",fontSize:13,lineHeight:1.7,color:"var(--bone-dim)",flex:1 }}
+              dangerouslySetInnerHTML={{ __html: vid.description || (n===0 ? cell.detail?.body : "") || "" }} />
+          </div>
+        </div>
+        <style>{`@keyframes fadeUp { from { opacity:0;transform:translateY(24px); } to { opacity:1;transform:translateY(0); } }`}</style>
+      </div>
+    );
+  }
+
+  function GraphicExpandedDetail({ cell, photos }) {
+    const [photoIdx, setPhotoIdx] = React.useState(-1);
+    const d = cell.detail || {};
+
+    /* sync with hex selection */
+    React.useEffect(() => {
+      setPhotoIdx(-1);
+      const fn = (i) => setPhotoIdx(i);
+      window.__photoState.listeners.push(fn);
+      return () => {
+        window.__photoState.listeners = window.__photoState.listeners.filter(x => x !== fn);
+      };
+    }, []);
+
+    const photo = photoIdx >= 0 && photoIdx < photos.length ? photos[photoIdx] : null;
+
+    /* ── No photo selected yet: generic cell description ── */
+    if (!photo) {
+      return (
+        <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+          <div style={{ pointerEvents:"auto",marginBottom:48,maxWidth:680,width:"100%",padding:"24px 32px",background:"rgba(6,5,4,0.88)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both" }}>
+            <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
+            <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:28,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:12 }}>{d.title || "Identities, type, and editorial systems."}</div>
+            <div style={{ fontFamily:"Inter,sans-serif",fontSize:13,lineHeight:1.7,color:"var(--bone-dim)" }} dangerouslySetInnerHTML={{ __html: d.body || "" }} />
+            {photos.length > 0 && (
+              <div style={{ marginTop:16,fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.2em",color:"rgba(212,165,116,0.4)" }}>
+                ↑ CLIQUER UN CARRÉ POUR VOIR LES DÉTAILS
+              </div>
+            )}
+          </div>
+          <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        </div>
+      );
+    }
+
+    /* ── Photo selected: details panel only (photo is in the hex) ── */
+    return (
+      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+        <div style={{
+          pointerEvents:"auto", marginBottom:40,
+          width:"min(720px, calc(100vw - 280px))",
+          background:"rgba(6,5,4,0.93)",
+          backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
+          border:"1px solid var(--line-strong)",
+          animation:"fadeUp 400ms cubic-bezier(.2,.7,.2,1) both",
+          display:"flex", overflow:"hidden",
+        }}>
+          {/* thin color accent strip */}
+          <div style={{ width:3, flexShrink:0, background:"linear-gradient(180deg,var(--gold-deep),var(--gold-bright))" }}/>
+
+          {/* content */}
+          <div style={{ flex:1, padding:"22px 28px", display:"flex", flexDirection:"column", gap:0 }}>
+            <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14 }}>
+              — {cell.num} / {cell.label.toUpperCase()} · {photoIdx+1}/{photos.length}
+            </div>
+
+            {/* title */}
+            <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:26,lineHeight:1.05,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:14 }}>
+              {photo.title || "Sans titre"}
+            </div>
+
+            {/* meta row */}
+            <div style={{ display:"flex",gap:24,flexWrap:"wrap",marginBottom:14 }}>
+              {[
+                ["ANNÉE",     photo.year      || ""],
+                ["CLIENT",    photo.client     || ""],
+                ["TECHNIQUE", photo.technique  || ""],
+                ["FORMAT",    photo.format     || ""],
+              ].filter(([,v]) => v).map(([label, value]) => (
+                <div key={label} style={{ display:"flex",flexDirection:"column",gap:3 }}>
+                  <span style={{ fontFamily:"JetBrains Mono,monospace",fontSize:7,letterSpacing:"0.3em",color:"var(--gold)" }}>{label}</span>
+                  <span style={{ fontFamily:"Inter,sans-serif",fontSize:13,color:"var(--bone-dim)" }}>{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {photo.description && <>
+              <div style={{ height:1,background:"rgba(212,165,116,0.1)",marginBottom:14 }}/>
+              <div style={{ fontFamily:"Inter,sans-serif",fontSize:13,lineHeight:1.7,color:"var(--bone-dim)",maxHeight:120,overflowY:"auto" }}
+                dangerouslySetInnerHTML={{ __html: photo.description }} />
+            </>}
+          </div>
+        </div>
+        <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      </div>
+    );
+  }
+
+  /* ── App root ───────────────────────────────────────────────────────── */
+  function App() {
+    const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    const [liveCells, setLiveCells] = useState(() => getLiveCells());
+    // refresh when admin changes cells
+    useEffect(() => {
+      const handler = () => setLiveCells(getLiveCells());
+      window.addEventListener("ld-cells-updated", handler);
+      return () => window.removeEventListener("ld-cells-updated", handler);
+    }, []);
+    const layouts = CELLS_BY_LAYOUT_FN(liveCells);
+    const CELLS    = layouts[tweaks.layout] || layouts.honeycomb;
+    const NAV_ITEMS = CELLS.filter(c=>!c.hidden).map(c => ({ id: c.id, label: c.label, num: c.num }));
+    const geo  = useMemo(() => getGeometry(tweaks.hexSize, tweaks.spacing, tweaks.shape), [tweaks.hexSize, tweaks.spacing, tweaks.shape]);
+    const clip = SHAPE_CLIPS[tweaks.shape] || HEX_CLIP;
+
+    useEffect(() => { applyTweaksCSS(tweaks); }, [tweaks]);
+    useEffect(() => { if (SFX && SFX.setVolume) SFX.setVolume(tweaks.volume); }, [tweaks.volume]);
+
+    const [loaded,        setLoaded]        = useState(false);
+    const [revealedCount, setRevealedCount] = useState(1);
+    const [expandedId,    setExpandedId]    = useState(null);
+    const [hovered,       setHovered]       = useState(null);
+    const [activeId,      setActiveId]      = useState("intro");
+
+    useEffect(() => {
+      const t = setTimeout(() => setLoaded(true), 2400);
+      return () => clearTimeout(t);
+    }, []);
+
+    const accumRef = useRef(0);
+    const lockRef  = useRef(false);
+    const total    = CELLS.length;
+
+    useEffect(() => {
+      if (!loaded) return;
+      const STEP = 80;
+      const onWheel = (e) => {
+        e.preventDefault();
+        if (lockRef.current) return;
+        accumRef.current += e.deltaY;
+        while (accumRef.current >= STEP) {
+          accumRef.current -= STEP;
+          setRevealedCount((c) => { if (c < total) { SFX.lock(); return c + 1; } return c; });
+          lockRef.current = true;
+          setTimeout(() => { lockRef.current = false; }, 250);
+        }
+        while (accumRef.current <= -STEP) {
+          accumRef.current += STEP;
+          setRevealedCount((c) => Math.max(1, c - 1));
+          lockRef.current = true;
+          setTimeout(() => { lockRef.current = false; }, 250);
+        }
+      };
+      let touchY = 0;
+      const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
+      const onTouchMove  = (e) => {
+        const dy = touchY - e.touches[0].clientY;
+        touchY = e.touches[0].clientY;
+        onWheel({ preventDefault: () => {}, deltaY: dy * 1.5 });
+      };
+      const onKey = (e) => {
+        if (e.key === "ArrowDown" || e.key === "PageDown") onWheel({ preventDefault: () => e.preventDefault(), deltaY: 100 });
+        if (e.key === "ArrowUp"   || e.key === "PageUp")   onWheel({ preventDefault: () => e.preventDefault(), deltaY: -100 });
+        if (e.key === "Escape") setExpandedId(null);
+      };
+      window.addEventListener("wheel",      onWheel,      { passive: false });
+      window.addEventListener("touchstart", onTouchStart, { passive: true });
+      window.addEventListener("touchmove",  onTouchMove,  { passive: true });
+      window.addEventListener("keydown",    onKey);
+      return () => {
+        window.removeEventListener("wheel",      onWheel);
+        window.removeEventListener("touchstart", onTouchStart);
+        window.removeEventListener("touchmove",  onTouchMove);
+        window.removeEventListener("keydown",    onKey);
+      };
+    }, [loaded, total]);
+
+    const onCellClick = (cell) => {
+      setExpandedId((cur) => cur === cell.id ? null : cell.id);
+      setActiveId(cell.id);
+    };
+    const onJump = (id) => { SFX.click(); setExpandedId(id); setActiveId(id); };
+
+    const repelFrom = useMemo(() => expandedId ? { x: 0, y: 0 } : null, [expandedId]);
+    const expandedCell = expandedId
+      ? (() => { const c = CELLS.find(c => c.id === expandedId); return c ? { ...c, __expanded: true } : null; })()
+      : null;
+    // Also mark the live cell for HexContent (so the graphic grid knows it's expanded)
+    const CELLS_RENDERED = CELLS.map(c => expandedId === c.id ? { ...c, __expanded: true } : c);
+
+    return (
+      <div>
+        <Loader done={loaded} />
+
+        <div style={{ position: "fixed", inset: 0, paddingRight: 240, overflow: "hidden" }}>
+          <BackgroundHexes visible={tweaks.showBgHexes} clip={clip} />
+          <div style={{ position: "absolute", inset: 0 }}
+               onClick={(e) => { if (e.target === e.currentTarget) setExpandedId(null); }}>
+            {CELLS_RENDERED.map((cell, i) => (
+              <HexCell key={cell.id} cell={cell}
+                visible={i < revealedCount}
+                expandedId={expandedId}
+                onClick={onCellClick}
+                repelFrom={repelFrom}
+                hovered={hovered} setHovered={setHovered}
+                drama={tweaks.drama}
+                geo={geo} clip={clip} tweaks={tweaks}
+              />
+            ))}
+          </div>
+
+          {tweaks.showSidetext && (
+            <div style={{ position: "absolute", left: 28, top: 110, writingMode: "vertical-rl", transform: "rotate(180deg)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.4em", color: "var(--bone-dim)" }}>
+              {DATA.artist.tagline}
+            </div>
+          )}
+          {tweaks.showSidetext && (
+            <div style={{ position: "absolute", left: 28, bottom: 28, fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.3em", color: "var(--gold)" }}>
+              ◉ {DATA.artist.availability}
+            </div>
+          )}
+
+          {tweaks.showHints && (
+            <div style={{
+              position: "absolute", bottom: 36, left: 0, right: 240, textAlign: "center",
+              pointerEvents: "none",
+              opacity: revealedCount === 1 ? 0 : (expandedId ? 0 : 0.55),
+              transition: "opacity 600ms ease",
+              fontFamily: "var(--mood-serif)", fontStyle: "var(--mood-italic)", fontWeight: 300,
+              fontSize: 14, color: "var(--bone-dim)",
+            }}>— click any cell to expand · neighbors will yield —</div>
+          )}
+
+          {tweaks.vignette > 0 && (
+            <div style={{
+              position: "absolute", inset: 0, pointerEvents: "none",
+              background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${tweaks.vignette}) 100%)`,
+            }}/>
+          )}
+        </div>
+
+        <Sidebar activeId={activeId} onJump={onJump} revealedCount={revealedCount} navItems={NAV_ITEMS} />
+        <TopBar revealed={revealedCount} total={total} expandedId={expandedId} onClose={() => setExpandedId(null)} />
+        <ExpandedDetail cell={expandedCell} />
+
+        <TweaksPanel title="Tweaks">
+          <TweakSection label="Mood">
+            <TweakRadio value={tweaks.mood} onChange={(v) => setTweak("mood", v)}
+              options={[
+                { value: "editorial", label: "Editorial" },
+                { value: "cinematic", label: "Cinematic" },
+                { value: "brutalist", label: "Brutalist" },
+              ]}/>
+            <TweakSelect label="More moods" value={tweaks.mood} onChange={(v) => setTweak("mood", v)}
+              options={["editorial","cinematic","brutalist","paper","void"]}/>
+          </TweakSection>
+
+          <TweakSection label="Palette">
+            <TweakColor label="Palette" value={tweaks.palette} onChange={(v) => setTweak("palette", v)}
+              options={[
+                ["#e8b560","#8a6635","#f4ede0"],
+                ["#d4a574","#5a3a1a","#e8dcc4"],
+                ["#ffffff","#888888","#ffffff"],
+                ["#9bc1ff","#2a4a8a","#e8ecf4"],
+                ["#ff6b4a","#7a2418","#fde8d8"],
+                ["#7ee0a8","#1a5a36","#e8f4ec"],
+                ["#e8a0d4","#7a2a5a","#f4e8ee"],
+              ]}/>
+            <TweakColor label="Accent" value={tweaks.palette[0]}
+              onChange={(v) => setTweak("palette", [v, tweaks.palette[1], tweaks.palette[2]])}
+              options={["#e8b560","#ff6b4a","#7ee0a8","#9bc1ff","#e8a0d4","#ffffff"]}/>
+          </TweakSection>
+
+          <TweakSection label="Background">
+            <TweakSelect label="Style" value={tweaks.background} onChange={(v) => setTweak("background", v)}
+              options={["noir","paper","void","sepia","midnight","ember"]}/>
+            <TweakSlider label="Vignette" value={tweaks.vignette} onChange={(v) => setTweak("vignette", v)} min={0} max={0.85} step={0.05}/>
+            <TweakSlider label="Grain" value={tweaks.grain} onChange={(v) => setTweak("grain", v)} min={0} max={1} step={0.05}/>
+            <TweakToggle label="Background hexes" value={tweaks.showBgHexes} onChange={(v) => setTweak("showBgHexes", v)}/>
+          </TweakSection>
+
+          <TweakSection label="Layout">
+            <TweakRadio value={tweaks.layout} onChange={(v) => setTweak("layout", v)}
+              options={[
+                { value: "honeycomb",     label: "Honeycomb" },
+                { value: "constellation", label: "Orbit" },
+                { value: "cluster",       label: "Cluster" },
+              ]}/>
+            <TweakSelect label="More layouts" value={tweaks.layout} onChange={(v) => setTweak("layout", v)}
+              options={["honeycomb","constellation","cluster","spine","spiral","row"]}/>
+          </TweakSection>
+
+          <TweakSection label="Geometry">
+            <TweakSelect label="Shape" value={tweaks.shape} onChange={(v) => setTweak("shape", v)}
+              options={["hexFlat","hexPointy","octagon","diamond","circle","square"]}/>
+            <TweakSlider label="Size" value={tweaks.hexSize} onChange={(v) => setTweak("hexSize", v)} min={180} max={520} step={10}/>
+            <TweakSlider label="Spacing" value={tweaks.spacing} onChange={(v) => setTweak("spacing", v)} min={0.7} max={1.6} step={0.05}/>
+            <TweakSlider label="Edge stroke" value={tweaks.stroke} onChange={(v) => setTweak("stroke", v)} min={0} max={6} step={0.5}/>
+          </TweakSection>
+
+          <TweakSection label="Motion">
+            <TweakSlider label="Magnetic drama" value={tweaks.drama} onChange={(v) => setTweak("drama", v)} min={0} max={1} step={0.05}/>
+            <TweakSlider label="Tempo" value={tweaks.tempo} onChange={(v) => setTweak("tempo", v)} min={0.4} max={2.5} step={0.1}/>
+          </TweakSection>
+
+          <TweakSection label="Hover">
+            <TweakRadio value={tweaks.hoverStyle} onChange={(v) => setTweak("hoverStyle", v)}
+              options={[
+                { value: "gold",   label: "Gold" },
+                { value: "chrome", label: "Chrome" },
+                { value: "neon",   label: "Neon" },
+              ]}/>
+            <TweakSelect label="More" value={tweaks.hoverStyle} onChange={(v) => setTweak("hoverStyle", v)}
+              options={["gold","chrome","neon","ink"]}/>
+          </TweakSection>
+
+          <TweakSection label="Type">
+            <TweakSelect label="Pairing" value={tweaks.typePair} onChange={(v) => setTweak("typePair", v)}
+              options={["fraunces-inter","playfair-mono","mono-everywhere","spectral-inter","fraunces-fraunces"]}/>
+          </TweakSection>
+
+          <TweakSection label="Chrome">
+            <TweakToggle label="Side text" value={tweaks.showSidetext} onChange={(v) => setTweak("showSidetext", v)}/>
+            <TweakToggle label="Hints" value={tweaks.showHints} onChange={(v) => setTweak("showHints", v)}/>
+          </TweakSection>
+
+          <TweakSection label="Audio">
+            <TweakSlider label="Volume" value={tweaks.volume} onChange={(v) => setTweak("volume", v)} min={0} max={1} step={0.05}/>
+          </TweakSection>
+        </TweaksPanel>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+
+  <!-- ── Admin Panel ─────────────────────────────────────────────────── -->
+  <script type="text/babel">
+  const ADMIN_PW_KEY   = "ld_admin_pw";
+  const ADMIN_AUTH_KEY = "ld_admin_auth";
+  const ADMIN_DATA_KEY = "ld_admin_data";
+
+  function getStoredPw() { return localStorage.getItem(ADMIN_PW_KEY) || "leadimas2026"; }
+  function loadAdminData() { try { const r = localStorage.getItem(ADMIN_DATA_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; } }
+  function saveAdminData(d) { localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(d)); }
+
+  /* push live cells to portfolio without reload */
+  function pushLiveCells(cells) {
+    window.__LIVE_CELLS = cells;
+    window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+  }
+
+  /* init live cells from admin data on page load */
+  (function() {
+    const d = loadAdminData();
+    let cells = d.cells && d.cells.length ? d.cells : window.PORTFOLIO_DATA.cells.map(c=>({...c}));
+    // inject cellVideos and cellPhotos into matching cells
+    const cv = d.cellVideos || {};
+    const cp = d.cellPhotos || {};
+    cells = cells.map(c => {
+      let out = { ...c };
+      if (cv[c.id]) out.videos = cv[c.id];
+      if (cp[c.id]) out.photos = cp[c.id];
+      return out;
+    });
+    window.__LIVE_CELLS = cells;
+    // also patch PORTFOLIO_DATA so HexContent can read it immediately
+    window.PORTFOLIO_DATA.cells = cells;
+  })();
+
+  /* ── Image compress ─────────────────────────────────────────────── */
+  async function compressImage(file, maxW=1200, quality=0.82) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxW/img.width);
+          const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img,0,0,w,h);
+          canvas.toBlob(blob => resolve({ dataUrl: canvas.toDataURL("image/jpeg", quality), w, h, origSize: file.size, newSize: blob.size }), "image/jpeg", quality);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ── Video thumbnail from file ──────────────────────────────────── */
+  function extractVideoThumb(file) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.preload = "metadata"; video.muted = true; video.src = url;
+      video.onloadeddata = () => {
+        video.currentTime = 1;
+        video.onseeked = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 320; canvas.height = 180;
+          canvas.getContext("2d").drawImage(video, 0, 0, 320, 180);
+          const thumb = canvas.toDataURL("image/jpeg", 0.7);
+          URL.revokeObjectURL(url);
+          resolve({ blobUrl: URL.createObjectURL(file), thumb, name: file.name, size: file.size });
+        };
+      };
+      video.onerror = () => resolve({ blobUrl: URL.createObjectURL(file), thumb: null, name: file.name, size: file.size });
+    });
+  }
+
+  /* ── Toast ──────────────────────────────────────────────────────── */
+  function Toast({ msg }) { if(!msg) return null; return <div className="adm-toast">{msg}</div>; }
+  function useToast() {
+    const [msg, setMsg] = React.useState("");
+    const show = m => { setMsg(m); setTimeout(() => setMsg(""), 2300); };
+    return [msg, show];
+  }
+
+  /* ── Rich editor ────────────────────────────────────────────────── */
+  function RichToolbar({ targetRef }) {
+    const exec = (cmd, val) => { if(targetRef.current){targetRef.current.focus();document.execCommand(cmd,false,val||null);} };
+    const FONTS = ["Inter","Fraunces","JetBrains Mono","Georgia","Arial","Times New Roman"];
+    return (
+      <div className="adm-toolbar">
+        <button className="adm-tb-btn" onClick={() => exec("bold")}><b>B</b></button>
+        <button className="adm-tb-btn" onClick={() => exec("italic")}><i>I</i></button>
+        <button className="adm-tb-btn" onClick={() => exec("underline")}><u>U</u></button>
+        <button className="adm-tb-btn" onClick={() => exec("strikeThrough")} style={{textDecoration:"line-through"}}>S</button>
+        <div className="adm-tb-sep"/>
+        <button className="adm-tb-btn" onClick={() => exec("formatBlock","H1")}>H1</button>
+        <button className="adm-tb-btn" onClick={() => exec("formatBlock","H2")}>H2</button>
+        <button className="adm-tb-btn" onClick={() => exec("formatBlock","H3")}>H3</button>
+        <button className="adm-tb-btn" onClick={() => exec("formatBlock","P")}>¶</button>
+        <div className="adm-tb-sep"/>
+        <button className="adm-tb-btn" onClick={() => exec("insertUnorderedList")}>• —</button>
+        <button className="adm-tb-btn" onClick={() => exec("insertOrderedList")}>1.</button>
+        <div className="adm-tb-sep"/>
+        <select className="adm-tb-select" defaultValue="" onChange={e => exec("fontName",e.target.value)}>
+          <option value="" disabled>Police</option>
+          {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <select className="adm-tb-select" defaultValue="" onChange={e => exec("fontSize",e.target.value)}>
+          <option value="" disabled>Taille</option>
+          {[1,2,3,4,5,6,7].map(s => <option key={s} value={s}>{["8","10","12","14","18","24","36"][s-1]}px</option>)}
+        </select>
+        <div className="adm-tb-sep"/>
+        <input type="color" style={{width:28,height:26,border:"1px solid rgba(212,165,116,0.2)",background:"transparent",cursor:"pointer",padding:2}} onChange={e => exec("foreColor",e.target.value)} />
+        <button className="adm-tb-btn" onClick={() => exec("removeFormat")}>✕</button>
+      </div>
+    );
+  }
+  function RichEditor({ id, value, onChange, placeholder }) {
+    const ref = React.useRef(null);
+    React.useEffect(() => { if(ref.current) ref.current.innerHTML = value||""; }, [id]);
+    return (
+      <div>
+        <RichToolbar targetRef={ref} />
+        <div ref={ref} className="adm-rich-editor" contentEditable suppressContentEditableWarning
+          onInput={() => onChange && onChange(ref.current.innerHTML)}
+          data-placeholder={placeholder||""} />
+        <style>{".adm-rich-editor:empty:before{content:attr(data-placeholder);color:rgba(185,177,163,0.3);pointer-events:none}"}</style>
+      </div>
+    );
+  }
+
+  /* ── Lazy image ─────────────────────────────────────────────────── */
+  function LazyImg({ src, alt }) {
+    const ref = React.useRef(null);
+    const [loaded, setLoaded] = React.useState(false);
+    React.useEffect(() => {
+      if(!ref.current) return;
+      const obs = new IntersectionObserver(([e]) => { if(e.isIntersecting){setLoaded(true);obs.disconnect();} },{rootMargin:"200px"});
+      obs.observe(ref.current);
+      return () => obs.disconnect();
+    },[]);
+    return (
+      <div ref={ref} style={{position:"relative",aspectRatio:"4/3"}}>
+        {!loaded && <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(212,165,116,0.3)",fontFamily:"JetBrains Mono,monospace",fontSize:10}}>…</div>}
+        {loaded && <img src={src} alt={alt} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />}
+      </div>
+    );
+  }
+
+  /* ── Tag input ──────────────────────────────────────────────────── */
+  function TagInput({ tags, onChange }) {
+    const [input, setInput] = React.useState("");
+    const add = () => { const v=input.trim(); if(v&&!tags.includes(v)){onChange([...tags,v]);setInput("");} };
+    return (
+      <div>
+        <div style={{display:"flex",flexWrap:"wrap",marginBottom:8}}>
+          {tags.map(t => <span key={t} className="adm-tag">{t}<button onClick={() => onChange(tags.filter(x=>x!==t))}>×</button></span>)}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <input className="adm-input" style={{flex:1}} placeholder="Ajouter balise…" value={input}
+            onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(e.preventDefault(),add())} />
+          <button className="adm-save-btn" onClick={add}>+</button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     VIDEO SECTION — Admin side
+  ════════════════════════════════════════════════════════════════ */
+  function VideoAdminCard({ v, i, onUpdate, onMoveUp, onMoveDown, onDelete, isFirst, isLast }) {
+    const [open, setOpen] = React.useState(false);
+    let thumbSrc = v.thumb || null;
+    if (!thumbSrc && v.url) {
+      const m = v.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([-\w]+)/);
+      if (m) thumbSrc = "https://img.youtube.com/vi/" + m[1] + "/hqdefault.jpg";
+    }
+    return (
+      <div style={{border:"1px solid rgba(212,165,116,0.15)",marginBottom:8,background:"rgba(255,255,255,0.02)"}}>
+        {/* ── header row ── */}
+        <div style={{display:"flex",gap:12,alignItems:"center",padding:"12px 14px"}}>
+          <div style={{width:80,height:45,flexShrink:0,background:"rgba(255,255,255,0.05)",overflow:"hidden",border:"1px solid rgba(212,165,116,0.1)"}}>
+            {thumbSrc
+              ? <img src={thumbSrc} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+              : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(212,165,116,0.3)",fontSize:14}}>▷</div>}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <input className="adm-input" value={v.title||""} placeholder="Titre de la vidéo"
+              onChange={e=>onUpdate(v.id,{title:e.target.value})}
+              style={{marginBottom:4,padding:"6px 10px",fontSize:13}} />
+            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.4)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              {v.type==="url" ? v.url : "📁 "+v.title+(v.size?" — "+Math.round(v.size/1024/1024*10)/10+"MB":"")}
+            </div>
+          </div>
+          <button className="adm-ghost-btn" style={{padding:"6px 12px",fontSize:10}} onClick={()=>setOpen(o=>!o)}>
+            {open ? "FERMER ▲" : "DÉTAILS ▼"}
+          </button>
+          <div style={{display:"flex",flexDirection:"column",gap:3}}>
+            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isFirst?0.3:1}} onClick={onMoveUp} disabled={isFirst}>↑</button>
+            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isLast?0.3:1}} onClick={onMoveDown} disabled={isLast}>↓</button>
+          </div>
+          <button className="adm-danger-btn" style={{padding:"8px 12px"}} onClick={onDelete}>✕</button>
+        </div>
+
+        {/* ── detail fields (collapsible) ── */}
+        {open && (
+          <div style={{padding:"0 14px 16px",borderTop:"1px solid rgba(212,165,116,0.1)"}}>
+            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",margin:"14px 0 12px"}}>— MÉTADONNÉES · affichées dans le panneau du bas</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:14}}>
+              {[["year","ANNÉE","2025"],["client","CLIENT","Studio X"],["duration","DURÉE","3:24"],["format","FORMAT","16:9 · 4K"]].map(([k,l,ph])=>(
+                <div key={k}>
+                  <label className="adm-label">{l}</label>
+                  <input className="adm-input" value={v[k]||""} placeholder={ph}
+                    style={{padding:"7px 10px",fontSize:12}}
+                    onChange={e=>onUpdate(v.id,{[k]:e.target.value})} />
+                </div>
+              ))}
+            </div>
+            <label className="adm-label">DESCRIPTION (rich text · panneau du bas)</label>
+            <VideoRichEditor id={"vdesc-"+v.id} value={v.description||""} onChange={val=>onUpdate(v.id,{description:val})} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* Lightweight rich editor for video descriptions */
+  function VideoRichEditor({ id, value, onChange }) {
+    const ref = React.useRef(null);
+    React.useEffect(() => { if(ref.current) ref.current.innerHTML = value||""; }, [id]);
+    const exec = (cmd, val) => { if(ref.current){ref.current.focus();document.execCommand(cmd,false,val||null);} };
+    return (
+      <div>
+        <div className="adm-toolbar" style={{flexWrap:"nowrap",gap:2}}>
+          <button className="adm-tb-btn" onClick={()=>exec("bold")}><b>B</b></button>
+          <button className="adm-tb-btn" onClick={()=>exec("italic")}><i>I</i></button>
+          <button className="adm-tb-btn" onClick={()=>exec("underline")}><u>U</u></button>
+          <div className="adm-tb-sep"/>
+          <button className="adm-tb-btn" onClick={()=>exec("insertUnorderedList")}>• —</button>
+          <button className="adm-tb-btn" onClick={()=>exec("removeFormat")}>✕</button>
+        </div>
+        <div ref={ref} className="adm-rich-editor" contentEditable suppressContentEditableWarning
+          style={{minHeight:70}}
+          onInput={()=>onChange && onChange(ref.current.innerHTML)}
+          data-placeholder="Description de la vidéo…"/>
+        <style>{".adm-rich-editor:empty:before{content:attr(data-placeholder);color:rgba(185,177,163,0.3);pointer-events:none}"}</style>
+      </div>
+    );
+  }
+
+  function VideoAdminSection({ data, onSave }) {
+    const cellVideos = data.cellVideos || {};   // { videoId: [...videos] }
+    /* We manage videos for the "video" cell */
+    const [videos, setVideos] = React.useState(cellVideos.video || []);
+    const [toast, showToast] = useToast();
+    const [urlInput, setUrlInput] = React.useState("");
+    const [urlTitle, setUrlTitle] = React.useState("");
+    const [uploading, setUploading] = React.useState(false);
+    const dropRef = React.useRef(null);
+
+    const save = (vids) => {
+      const next = { ...cellVideos, video: vids };
+      onSave({ cellVideos: next });
+      /* inject into live portfolio cell */
+      const liveCells = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c =>
+        c.id === "video" ? { ...c, videos: vids } : c
+      );
+      window.__LIVE_CELLS = liveCells;
+      window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c =>
+        c.id === "video" ? { ...c, videos: vids } : c
+      );
+      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+    };
+
+    const addUrl = () => {
+      if (!urlInput.trim()) return;
+      const v = { id: Date.now(), type:"url", url: urlInput.trim(), title: urlTitle.trim() || "Vidéo", thumb: null };
+      const next = [...videos, v];
+      setVideos(next); save(next);
+      setUrlInput(""); setUrlTitle("");
+      showToast("✓ URL ajoutée");
+    };
+
+    const handleFiles = async (files) => {
+      setUploading(true);
+      const arr = Array.from(files).filter(f => f.type.startsWith("video/"));
+      const results = [];
+      for (const f of arr) {
+        const res = await extractVideoThumb(f);
+        results.push({ id: Date.now() + Math.random(), type:"file", blobUrl: res.blobUrl, thumb: res.thumb, title: res.name.replace(/\.[^.]+$/, ""), size: res.size });
+      }
+      const next = [...videos, ...results];
+      setVideos(next); save(next);
+      setUploading(false);
+      showToast("✓ " + results.length + " vidéo(s) ajoutée(s)");
+    };
+
+    const remove = (id) => { if(!confirm("Supprimer cette vidéo ?")) return; const next=videos.filter(v=>v.id!==id); setVideos(next); save(next); };
+    const moveUp = (i) => { if(i===0) return; const a=[...videos]; [a[i-1],a[i]]=[a[i],a[i-1]]; setVideos(a); save(a); };
+    const moveDown = (i) => { if(i===videos.length-1) return; const a=[...videos]; [a[i],a[i+1]]=[a[i+1],a[i]]; setVideos(a); save(a); };
+    /* title update now handled by VideoAdminCard */
+
+    return (
+      <div>
+        <Toast msg={toast} />
+        <div className="adm-section-title">Vidéos</div>
+        <div className="adm-section-meta">— SLIDER · URL EXTERNE · UPLOAD LOCAL</div>
+
+        {/* ── URL section ── */}
+        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:20,background:"rgba(255,255,255,0.02)"}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:16}}>— AJOUTER UNE URL</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:10,marginBottom:10}}>
+            <div>
+              <label className="adm-label">TITRE</label>
+              <input className="adm-input" value={urlTitle} onChange={e=>setUrlTitle(e.target.value)} placeholder="ex: Nova — 2025" />
+            </div>
+            <div>
+              <label className="adm-label">URL (YouTube / Vimeo / lien direct)</label>
+              <input className="adm-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUrl()} placeholder="https://…" />
+            </div>
+          </div>
+          <button className="adm-save-btn" onClick={addUrl}>+ AJOUTER L'URL</button>
+        </div>
+
+        {/* ── Upload section ── */}
+        <div ref={dropRef} className="adm-upload-zone" style={{marginBottom:28}}
+          onClick={() => document.getElementById("adm-vid-input").click()}
+          onDrop={e=>{e.preventDefault();dropRef.current.classList.remove("drag-over");handleFiles(e.dataTransfer.files);}}
+          onDragOver={e=>{e.preventDefault();dropRef.current.classList.add("drag-over");}}
+          onDragLeave={()=>dropRef.current.classList.remove("drag-over")}>
+          <input id="adm-vid-input" type="file" multiple accept="video/*" style={{display:"none"}} onChange={e=>handleFiles(e.target.files)} />
+          <div style={{fontSize:24,marginBottom:8,color:"rgba(212,165,116,0.4)"}}>▷</div>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:11,letterSpacing:"0.25em",color:"var(--bone-dim)"}}>DÉPOSER DES VIDÉOS ICI</div>
+          <div style={{fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.4)",marginTop:6}}>miniature extraite auto — lecture lazy</div>
+          {uploading && <div style={{marginTop:12,fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.2em",color:"var(--gold)"}}>TRAITEMENT…</div>}
+        </div>
+
+        {/* ── Video list ── */}
+        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--bone-dim)",marginBottom:12}}>— {videos.length} VIDÉO{videos.length!==1?"S":""} · ORDRE = ORDRE DU SLIDER</div>
+        {videos.length === 0 && <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:"rgba(185,177,163,0.3)",padding:"24px 0"}}>Aucune vidéo. Ajoutez une URL ou uploadez un fichier.</div>}
+        {videos.map((v, i) => (
+          <VideoAdminCard key={v.id} v={v} i={i}
+            onUpdate={(id,patch)=>{ const next=videos.map(x=>x.id===id?{...x,...patch}:x); setVideos(next); save(next); }}
+            onMoveUp={()=>moveUp(i)} onMoveDown={()=>moveDown(i)}
+            onDelete={()=>remove(v.id)}
+            isFirst={i===0} isLast={i===videos.length-1} />
+        ))}
+        {videos.length > 0 && <div style={{marginTop:8,fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.4)"}}>La miniature YouTube s'affiche dans l'hexagone. Le lecteur s'ouvre dans le panneau du bas au clic.</div>}
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     HEX MANAGER — create / hide / reorder / draft
+  ════════════════════════════════════════════════════════════════ */
+  const DEFAULT_CELL_POSITIONS = [
+    [0,0],[0,-1],[1,-0.5],[-1,-0.5],[-1,0.5],[1,0.5],[0,1],[2,0],[-2,0]
+  ];
+
+  function HexManagerSection({ data, onSave }) {
+    const [cells, setCells] = React.useState(() => {
+      const stored = data.cells;
+      if (stored && stored.length) return stored;
+      return window.PORTFOLIO_DATA.cells.map(c => ({ ...c }));
+    });
+    const [toast, showToast] = useToast();
+    const [showNew, setShowNew] = React.useState(false);
+    const [newCell, setNewCell] = React.useState({ label:"", type:"generic", status:"draft" });
+
+    const save = (c) => {
+      setCells(c);
+      onSave({ cells: c });
+      pushLiveCells(c);
+    };
+
+    const toggle = (id, field) => {
+      const next = cells.map(c => c.id===id ? {...c,[field]:!c[field]} : c);
+      save(next);
+      showToast("✓ Mis à jour");
+    };
+
+    const setStatus = (id, status) => {
+      const next = cells.map(c => c.id===id ? {...c, status, hidden: status==="hidden"} : c);
+      save(next);
+    };
+
+    const moveUp = (i) => { if(i===0) return; const a=[...cells];[a[i-1],a[i]]=[a[i],a[i-1]];save(a); };
+    const moveDown = (i) => { if(i===cells.length-1) return; const a=[...cells];[a[i],a[i+1]]=[a[i+1],a[i]];save(a); };
+
+    const addCell = () => {
+      if (!newCell.label.trim()) { showToast("⚠ Donnez un nom à l'hexagone"); return; }
+      const id = "custom_" + Date.now();
+      const num = String(cells.length + 1).padStart(2,"0");
+      const posIdx = cells.length % DEFAULT_CELL_POSITIONS.length;
+      const [col, row] = DEFAULT_CELL_POSITIONS[posIdx];
+      const c = {
+        id, col, row, num, label: newCell.label.trim(),
+        type: newCell.type || "generic",
+        status: newCell.status || "draft",
+        hidden: newCell.status === "hidden",
+        content: { title: newCell.label.trim(), titleAccent: "" },
+        detail: { title: newCell.label.trim(), body: "" },
+        videos: [],
+        isCustom: true,
+      };
+      const next = [...cells, c];
+      save(next);
+      setShowNew(false);
+      setNewCell({ label:"", type:"generic", status:"draft" });
+      showToast("✓ Hexagone « " + c.label + " » créé");
+    };
+
+    const deleteCell = (id) => {
+      const c = cells.find(x=>x.id===id);
+      if (!c.isCustom) { showToast("⚠ Impossible de supprimer un hexagone original — masquez-le"); return; }
+      if (!confirm("Supprimer définitivement « " + c.label + " » ?")) return;
+      save(cells.filter(x=>x.id!==id));
+      showToast("✓ Supprimé");
+    };
+
+    const TYPES = ["intro","about","video","graphic","cv","contact","process","archive","selected","generic"];
+
+    return (
+      <div>
+        <Toast msg={toast} />
+        <div className="adm-section-title">Hexagones</div>
+        <div className="adm-section-meta">— CRÉER · MASQUER · RÉACTIVER · ORDONNER</div>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--bone-dim)"}}>{cells.filter(c=>!c.hidden).length} ACTIFS · {cells.filter(c=>c.hidden).length} MASQUÉS</div>
+          <button className="adm-save-btn" onClick={() => setShowNew(s=>!s)}>{showNew ? "ANNULER" : "+ NOUVEL HEXAGONE"}</button>
+        </div>
+
+        {/* New cell form */}
+        {showNew && (
+          <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.25)",background:"rgba(212,165,116,0.05)",marginBottom:20}}>
+            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:16}}>— NOUVEL HEXAGONE</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14}}>
+              <div>
+                <label className="adm-label">NOM</label>
+                <input className="adm-input" value={newCell.label} onChange={e=>setNewCell(n=>({...n,label:e.target.value}))} placeholder="ex: Services" />
+              </div>
+              <div>
+                <label className="adm-label">TYPE</label>
+                <select className="adm-input" value={newCell.type} onChange={e=>setNewCell(n=>({...n,type:e.target.value}))}>
+                  {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="adm-label">STATUT INITIAL</label>
+                <select className="adm-input" value={newCell.status} onChange={e=>setNewCell(n=>({...n,status:e.target.value}))}>
+                  <option value="live">Publié (live)</option>
+                  <option value="draft">Brouillon</option>
+                </select>
+              </div>
+            </div>
+            <button className="adm-save-btn" onClick={addCell}>CRÉER L'HEXAGONE</button>
+          </div>
+        )}
+
+        {/* Cells list */}
+        {cells.map((c, i) => {
+          const status = c.hidden ? "hidden" : (c.status || "live");
+          return (
+            <div key={c.id} className={"hex-row" + (c.hidden?" hidden-cell":"") + (status==="draft"?" draft-cell":"")}>
+              {/* drag order */}
+              <div style={{display:"flex",flexDirection:"column",gap:3,flexShrink:0}}>
+                <button className="adm-ghost-btn" style={{padding:"2px 7px",fontSize:11}} onClick={()=>moveUp(i)}>↑</button>
+                <button className="adm-ghost-btn" style={{padding:"2px 7px",fontSize:11}} onClick={()=>moveDown(i)}>↓</button>
+              </div>
+
+              {/* mini hex icon */}
+              <div style={{width:18,height:20,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:c.hidden?"rgba(185,177,163,0.15)":"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
+
+              {/* info */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:c.hidden?"var(--bone-dim)":"var(--bone)",fontWeight:500}}>{c.label}</div>
+                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,color:"rgba(185,177,163,0.4)",letterSpacing:"0.15em"}}>{c.num} · {c.type}{c.isCustom?" · custom":""}</div>
+              </div>
+
+              {/* status badge */}
+              <span className={"hex-badge badge-"+status}>{status==="live"?"● LIVE":status==="draft"?"◌ DRAFT":"— MASQUÉ"}</span>
+
+              {/* status selector */}
+              <select className="adm-input" value={status} onChange={e=>setStatus(c.id,e.target.value)}
+                style={{width:110,padding:"6px 8px",fontSize:11}}>
+                <option value="live">● Live</option>
+                <option value="draft">◌ Brouillon</option>
+                <option value="hidden">— Masquer</option>
+              </select>
+
+              {/* delete (custom only) */}
+              {c.isCustom && <button className="adm-danger-btn" style={{padding:"6px 10px",flexShrink:0}} onClick={()=>deleteCell(c.id)}>✕</button>}
+            </div>
+          );
+        })}
+
+        <div style={{marginTop:16,fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.35)",lineHeight:1.6}}>
+          Les hexagones en brouillon sont masqués du portfolio public mais restent éditables ici.<br/>
+          Les hexagones originaux ne peuvent pas être supprimés — uniquement masqués.
+        </div>
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     OTHER SECTIONS (Photos, Content, Artist, Settings, Dashboard)
+  ════════════════════════════════════════════════════════════════ */
+  function DashboardSection({ data }) {
+    const photos = ((data.cellPhotos||{}).graphic||[]).length;
+    const vids   = ((data.cellVideos||{}).video||[]).length;
+    const cells  = (data.cells||window.PORTFOLIO_DATA.cells);
+    const live   = cells.filter(c=>!c.hidden&&c.status!=="draft").length;
+    return (
+      <div>
+        <div className="adm-section-title">Tableau de bord</div>
+        <div className="adm-section-meta">— VUE D'ENSEMBLE</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:32}}>
+          <div className="adm-stat"><div className="adm-stat-num">{photos}</div><div className="adm-stat-label">PHOTOS</div></div>
+          <div className="adm-stat"><div className="adm-stat-num">{vids}</div><div className="adm-stat-label">VIDÉOS</div></div>
+          <div className="adm-stat"><div className="adm-stat-num">{live}</div><div className="adm-stat-label">HEX LIVE</div></div>
+          <div className="adm-stat"><div className="adm-stat-num">{cells.length}</div><div className="adm-stat-label">TOTAL</div></div>
+        </div>
+        <div style={{padding:"20px 24px",border:"1px solid rgba(212,165,116,0.12)",background:"rgba(255,255,255,0.02)"}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— AIDE RAPIDE</div>
+          <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:"var(--bone-dim)",lineHeight:2.2}}>
+            <span style={{color:"var(--gold-bright)"}}>◉ Vidéos</span> — Slider multi-vidéos par URL ou upload<br/>
+            <span style={{color:"var(--gold-bright)"}}>◉ Hexagones</span> — Créer / masquer / brouillon / réordonner<br/>
+            <span style={{color:"var(--gold-bright)"}}>◉ Photos</span> — Upload, compression JPEG auto, lazy load<br/>
+            <span style={{color:"var(--gold-bright)"}}>◉ Contenu</span> — Textes de chaque cellule (rich text)<br/>
+            <span style={{color:"var(--gold-bright)"}}>◉ Profil</span> — Nom, bio, réseaux, balises<br/>
+            <em style={{color:"rgba(185,177,163,0.35)"}}>Accès : index.html#/admin — mot de passe : leadimas2026</em>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Photo admin card (collapsible, with meta fields) ── */
+  function PhotoAdminCard({ p, i, onUpdate, onMoveUp, onMoveDown, onDelete, isFirst, isLast }) {
+    const [open, setOpen] = React.useState(false);
+    return (
+      <div style={{border:"1px solid rgba(212,165,116,0.15)",marginBottom:8,background:"rgba(255,255,255,0.02)"}}>
+        {/* header */}
+        <div style={{display:"flex",gap:12,alignItems:"center",padding:"10px 12px"}}>
+          <div style={{width:64,height:64,flexShrink:0,overflow:"hidden",border:"1px solid rgba(212,165,116,0.12)",background:"rgba(255,255,255,0.03)"}}>
+            <img src={p.dataUrl} alt={p.title||p.name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <input className="adm-input" value={p.title||""} placeholder="Titre de la création"
+              onChange={e=>onUpdate(p.id,{title:e.target.value})}
+              style={{marginBottom:4,padding:"6px 10px",fontSize:13}} />
+            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.4)"}}>
+              {p.w}×{p.h} · {p.origSize}KB→{p.newSize}KB
+            </div>
+          </div>
+          <button className="adm-ghost-btn" style={{padding:"6px 12px",fontSize:10}} onClick={()=>setOpen(o=>!o)}>
+            {open ? "FERMER ▲" : "DÉTAILS ▼"}
+          </button>
+          <div style={{display:"flex",flexDirection:"column",gap:3}}>
+            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isFirst?0.3:1}} onClick={onMoveUp} disabled={isFirst}>↑</button>
+            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isLast?0.3:1}} onClick={onMoveDown} disabled={isLast}>↓</button>
+          </div>
+          <button className="adm-danger-btn" style={{padding:"8px 12px"}} onClick={onDelete}>✕</button>
+        </div>
+        {/* detail fields */}
+        {open && (
+          <div style={{padding:"0 12px 16px",borderTop:"1px solid rgba(212,165,116,0.1)"}}>
+            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",margin:"14px 0 12px"}}>— MÉTADONNÉES · panneau du bas au clic</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:14}}>
+              {[["year","ANNÉE","2025"],["client","CLIENT","Studio X"],["technique","TECHNIQUE","Print · A2"],["format","FORMAT","297×420mm"]].map(([k,l,ph])=>(
+                <div key={k}>
+                  <label className="adm-label">{l}</label>
+                  <input className="adm-input" value={p[k]||""} placeholder={ph}
+                    style={{padding:"7px 10px",fontSize:12}}
+                    onChange={e=>onUpdate(p.id,{[k]:e.target.value})} />
+                </div>
+              ))}
+            </div>
+            <label className="adm-label">DESCRIPTION (rich text · panneau du bas)</label>
+            <VideoRichEditor id={"pdesc-"+p.id} value={p.description||""} onChange={val=>onUpdate(p.id,{description:val})} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function PhotoSection({ data, onSave }) {
+    const cellPhotos = data.cellPhotos || {};
+    const [photos, setPhotos] = React.useState(cellPhotos.graphic || []);
+    const [uploading, setUploading] = React.useState(false);
+    const [progress, setProgress] = React.useState(0);
+    const [toast, showToast] = useToast();
+    const dropRef = React.useRef(null);
+
+    const save = (ph) => {
+      const next = { ...cellPhotos, graphic: ph };
+      onSave({ cellPhotos: next });
+      /* inject into live cells */
+      const liveCells = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c =>
+        c.id === "graphic" ? { ...c, photos: ph } : c
+      );
+      window.__LIVE_CELLS = liveCells;
+      window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c =>
+        c.id === "graphic" ? { ...c, photos: ph } : c
+      );
+      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+    };
+
+    const handleFiles = async (files) => {
+      setUploading(true);
+      const results=[];
+      const arr=Array.from(files).filter(f=>f.type.startsWith("image/"));
+      for(let i=0;i<arr.length;i++){
+        setProgress(Math.round((i/arr.length)*90));
+        const c=await compressImage(arr[i]);
+        results.push({id:Date.now()+i,dataUrl:c.dataUrl,name:arr[i].name,w:c.w,h:c.h,origSize:Math.round(c.origSize/1024),newSize:Math.round(c.newSize/1024),title:"",description:"",uploadedAt:new Date().toISOString()});
+      }
+      setProgress(100);
+      const next=[...results,...photos];
+      setPhotos(next); save(next);
+      setUploading(false);setProgress(0);
+      showToast("✓ "+results.length+" création(s) ajoutée(s)");
+    };
+
+    const moveUp=(i)=>{if(i===0)return;const a=[...photos];[a[i-1],a[i]]=[a[i],a[i-1]];setPhotos(a);save(a);};
+    const moveDown=(i)=>{if(i===photos.length-1)return;const a=[...photos];[a[i],a[i+1]]=[a[i+1],a[i]];setPhotos(a);save(a);};
+    const del=(id)=>{if(!confirm("Supprimer cette création ?"))return;const n=photos.filter(p=>p.id!==id);setPhotos(n);save(n);};
+    const upd=(id,patch)=>{const n=photos.map(p=>p.id===id?{...p,...patch}:p);setPhotos(n);save(n);};
+
+    return (
+      <div>
+        <Toast msg={toast}/>
+        <div className="adm-section-title">Graphic Design</div>
+        <div className="adm-section-meta">— CRÉATIONS · 6 CARRÉS · PANNEAU DÉTAILS</div>
+
+        <div ref={dropRef} className="adm-upload-zone" style={{marginBottom:24}}
+          onClick={()=>document.getElementById("adm-img-input").click()}
+          onDrop={e=>{e.preventDefault();dropRef.current.classList.remove("drag-over");handleFiles(e.dataTransfer.files);}}
+          onDragOver={e=>{e.preventDefault();dropRef.current.classList.add("drag-over");}}
+          onDragLeave={()=>dropRef.current.classList.remove("drag-over")}>
+          <input id="adm-img-input" type="file" multiple accept="image/*" style={{display:"none"}} onChange={e=>handleFiles(e.target.files)}/>
+          <div style={{fontSize:26,marginBottom:8,color:"rgba(212,165,116,0.4)"}}>◈</div>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:11,letterSpacing:"0.25em",color:"var(--bone-dim)"}}>DÉPOSER DES CRÉATIONS ICI</div>
+          <div style={{fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.4)",marginTop:6}}>JPEG 82% auto · les 6 premières s'affichent dans l'hexagone</div>
+          {uploading&&<div style={{marginTop:14}}><div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.2em",color:"var(--gold)",marginBottom:6}}>COMPRESSION… {progress}%</div><div className="adm-progress-bar"><div className="adm-progress-fill" style={{width:progress+"%"}}/></div></div>}
+        </div>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--bone-dim)"}}>{photos.length} CRÉATION{photos.length!==1?"S":""} · {Math.min(photos.length,6)} VISIBLE{Math.min(photos.length,6)!==1?"S":""} DANS L'HEXAGONE</div>
+        </div>
+
+        {photos.length === 0 && <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:"rgba(185,177,163,0.3)",padding:"20px 0"}}>Aucune création. Uploadez vos visuels graphiques.</div>}
+        {photos.map((p,i)=>(
+          <PhotoAdminCard key={p.id} p={p} i={i}
+            onUpdate={upd} onMoveUp={()=>moveUp(i)} onMoveDown={()=>moveDown(i)} onDelete={()=>del(p.id)}
+            isFirst={i===0} isLast={i===photos.length-1} />
+        ))}
+        {photos.length>6&&<div style={{marginTop:8,fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.35)"}}>Seules les 6 premières créations s'affichent dans l'hexagone. Réordonnez avec ↑↓.</div>}
+      </div>
+    );
+  }
+
+  function ContentSection({ data, onSave }) {
+    const baseCells = (data.cells||window.PORTFOLIO_DATA.cells).map(c=>({...c,detail:{...c.detail},content:{...c.content}}));
+    const [cells, setCells] = React.useState(baseCells);
+    const [sel, setSel] = React.useState(0);
+    const [toast, showToast] = useToast();
+    const upd=(path,val)=>setCells(prev=>prev.map((c,i)=>{if(i!==sel)return c;const[a,b]=path.split(".");if(b)return{...c,[a]:{...c[a],[b]:val}};return{...c,[a]:val};}));
+    const save=()=>{window.PORTFOLIO_DATA.cells=cells;onSave({cells});pushLiveCells(cells);showToast("✓ Contenu sauvegardé");};
+    const cell=cells[sel];
+    return (
+      <div style={{display:"flex",gap:28}}>
+        <Toast msg={toast}/>
+        <div style={{width:155,flexShrink:0}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--bone-dim)",marginBottom:12}}>— CELLULES</div>
+          {cells.map((c,i)=>(
+            <button key={c.id} onClick={()=>setSel(i)} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 12px",marginBottom:3,background:i===sel?"rgba(212,165,116,0.1)":"transparent",border:"1px solid "+(i===sel?"rgba(212,165,116,0.3)":"transparent"),color:i===sel?"var(--gold-bright)":"var(--bone-dim)",fontFamily:"Inter,sans-serif",fontSize:12,cursor:"pointer"}}>
+              <span style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,color:"var(--gold)",display:"block",marginBottom:2}}>{c.num}</span>
+              {c.label}{c.hidden?" 👁":""}{c.status==="draft"?" ◌":""}
+            </button>
+          ))}
+        </div>
+        <div style={{flex:1}}>
+          <div className="adm-section-title">{cell.label}</div>
+          <div className="adm-section-meta">— CELLULE {cell.num} · {cell.type.toUpperCase()}</div>
+          <div className="adm-field-group"><label className="adm-label">TITRE DÉTAIL</label><input className="adm-input" value={cell.detail.title||""} onChange={e=>upd("detail.title",e.target.value)}/></div>
+          <div className="adm-field-group"><label className="adm-label">CORPS (rich text)</label><RichEditor id={cell.id+"-b"} value={cell.detail.body||""} onChange={v=>upd("detail.body",v)} placeholder="Description…"/></div>
+          {cell.content.sub!==undefined&&<div className="adm-field-group"><label className="adm-label">SOUS-TITRE</label><input className="adm-input" value={cell.content.sub||""} onChange={e=>upd("content.sub",e.target.value)}/></div>}
+          {Array.isArray(cell.content.items)&&<div className="adm-field-group"><label className="adm-label">ITEMS (un par ligne)</label><textarea className="adm-textarea" rows={4} value={(cell.content.items||[]).join("\n")} onChange={e=>upd("content.items",e.target.value.split("\n").filter(Boolean))}/></div>}
+          <button className="adm-save-btn" onClick={save}>SAUVEGARDER</button>
+        </div>
+      </div>
+    );
+  }
+
+  function ArtistSection({ data, onSave }) {
+    const [artist, setArtist] = React.useState({...window.PORTFOLIO_DATA.artist,...(data.artist||{})});
+    const [social, setSocial] = React.useState(data.social||window.PORTFOLIO_DATA.social.map(s=>({...s})));
+    const [tags, setTags] = React.useState(data.tags||[]);
+    const [toast, showToast] = useToast();
+    const upd=(k,v)=>setArtist(a=>({...a,[k]:v}));
+    const save=()=>{Object.assign(window.PORTFOLIO_DATA.artist,artist);window.PORTFOLIO_DATA.social=social;onSave({artist,social,tags});showToast("✓ Profil sauvegardé");};
+    return (
+      <div>
+        <Toast msg={toast}/>
+        <div className="adm-section-title">Profil</div>
+        <div className="adm-section-meta">— IDENTITÉ · RÉSEAUX · BALISES</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+          {[["name","Nom"],["role","Rôle"],["studio","Studio"],["email","Email"],["availability","Disponibilité"],["tagline","Tagline"]].map(([k,l])=>(
+            <div key={k} className="adm-field-group" style={{marginBottom:0}}><label className="adm-label">{l.toUpperCase()}</label><input className="adm-input" value={artist[k]||""} onChange={e=>upd(k,e.target.value)}/></div>
+          ))}
+        </div>
+        <div className="adm-field-group"><label className="adm-label">BIO (rich text)</label><RichEditor id="bio" value={artist.bio||""} onChange={v=>upd("bio",v)} placeholder="Biographie…"/></div>
+        <div className="adm-field-group"><label className="adm-label">BALISES</label><TagInput tags={tags} onChange={setTags}/></div>
+        <div className="adm-field-group">
+          <label className="adm-label">RÉSEAUX SOCIAUX</label>
+          {social.map((s,i)=>(
+            <div key={i} style={{display:"flex",gap:10,marginBottom:8}}>
+              <input className="adm-input" value={s.label} onChange={e=>setSocial(p=>p.map((x,j)=>j===i?{...x,label:e.target.value}:x))} style={{width:130}}/>
+              <input className="adm-input" value={s.url} onChange={e=>setSocial(p=>p.map((x,j)=>j===i?{...x,url:e.target.value}:x))} style={{flex:1}} placeholder="https://…"/>
+            </div>
+          ))}
+        </div>
+        <button className="adm-save-btn" onClick={save}>SAUVEGARDER</button>
+      </div>
+    );
+  }
+
+  function SettingsSection({ onLogout }) {
+    const [pw,setPw]=React.useState("");const[pw2,setPw2]=React.useState("");
+    const [toast,showToast]=useToast();
+    const changePw=()=>{if(pw.length<6){showToast("⚠ Trop court");return;}if(pw!==pw2){showToast("⚠ Mots de passe différents");return;}localStorage.setItem(ADMIN_PW_KEY,pw);setPw("");setPw2("");showToast("✓ Mot de passe mis à jour");};
+    const exportData=()=>{const b=new Blob([JSON.stringify(loadAdminData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="leadimas-admin.json";a.click();};
+    const clearAll=()=>{if(!confirm("Supprimer TOUTES les données admin ?"))return;localStorage.removeItem(ADMIN_DATA_KEY);showToast("✓ Supprimé");setTimeout(()=>location.reload(),1500);};
+    return (
+      <div style={{maxWidth:500}}>
+        <Toast msg={toast}/>
+        <div className="adm-section-title">Paramètres</div>
+        <div className="adm-section-meta">— SÉCURITÉ · EXPORT · SUPABASE-READY</div>
+        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:18,background:"rgba(255,255,255,0.02)"}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14}}>— MOT DE PASSE</div>
+          <div className="adm-field-group"><label className="adm-label">NOUVEAU</label><input className="adm-input" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="6 caractères min."/></div>
+          <div className="adm-field-group"><label className="adm-label">CONFIRMER</label><input className="adm-input" type="password" value={pw2} onChange={e=>setPw2(e.target.value)} placeholder="Répéter"/></div>
+          <button className="adm-save-btn" onClick={changePw}>CHANGER</button>
+        </div>
+        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:18,background:"rgba(255,255,255,0.02)"}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— DONNÉES (localStorage)</div>
+          <div style={{display:"flex",gap:12,marginTop:12}}><button className="adm-save-btn" onClick={exportData}>EXPORTER JSON</button><button className="adm-danger-btn" onClick={clearAll}>TOUT EFFACER</button></div>
+        </div>
+        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.08)",opacity:0.55}}>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:8}}>— SUPABASE (prochainement)</div>
+          <div style={{fontFamily:"Inter,sans-serif",fontSize:12,color:"var(--bone-dim)"}}>URL · Anon Key · Storage Bucket — migration sans perte.</div>
+        </div>
+        <div style={{marginTop:24,paddingTop:18,borderTop:"1px solid rgba(212,165,116,0.1)"}}><button className="adm-danger-btn" onClick={onLogout}>↩ DÉCONNEXION</button></div>
+      </div>
+    );
+  }
+
+  /* ── Admin shell ────────────────────────────────────────────────── */
+  const ADM_NAV = [
+    { id:"dashboard", icon:"◈", label:"Tableau de bord" },
+    { id:"videos",    icon:"▷", label:"Vidéos" },
+    { id:"hexagons",  icon:"⬡", label:"Hexagones" },
+    { id:"photos",    icon:"◼", label:"Photos" },
+    { id:"content",   icon:"✦", label:"Contenu" },
+    { id:"artist",    icon:"◎", label:"Profil" },
+    { id:"settings",  icon:"⊙", label:"Paramètres" },
+  ];
+
+  function AdminDashboard({ onLogout }) {
+    const [section, setSection] = React.useState("dashboard");
+    const [data, setData] = React.useState(() => loadAdminData());
+    const handleSave = (patch) => { const next={...data,...patch}; setData(next); saveAdminData(next); };
+    return (
+      <div className="adm-dash">
+        <div className="adm-sidebar">
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}>
+            <div style={{width:22,height:26,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
+            <div><div style={{fontFamily:"Fraunces,serif",fontWeight:300,fontSize:16,color:"var(--bone)"}}>Lea Dimas</div><div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",marginTop:2}}>ADMIN</div></div>
+          </div>
+          <nav style={{flex:1}}>
+            {ADM_NAV.map(n=>(
+              <button key={n.id} onClick={()=>setSection(n.id)} className={"adm-nav-item"+(section===n.id?" active":"")}>
+                <span className="adm-nav-icon">{n.icon}</span>{n.label}
+              </button>
+            ))}
+          </nav>
+          <div style={{paddingTop:16,borderTop:"1px solid rgba(212,165,116,0.12)"}}>
+            <button className="adm-nav-item" style={{color:"rgba(220,100,100,0.7)"}} onClick={()=>{if(confirm("Déconnecter ?"))onLogout();}}>
+              <span className="adm-nav-icon">↩</span>Déconnexion
+            </button>
+            <a href={window.location.pathname + window.location.search}
+              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",color:"var(--bone-dim)",textDecoration:"none",fontFamily:"Inter,sans-serif",fontSize:13}}>
+              <span style={{width:20,textAlign:"center"}}>↗</span>Voir le site
+            </a>
+          </div>
+        </div>
+        <div className="adm-main">
+          {section==="dashboard" && <DashboardSection data={data}/>}
+          {section==="videos"    && <VideoAdminSection data={data} onSave={handleSave}/>}
+          {section==="hexagons"  && <HexManagerSection data={data} onSave={handleSave}/>}
+          {section==="photos"    && <PhotoSection data={data} onSave={handleSave}/>}
+          {section==="content"   && <ContentSection data={data} onSave={handleSave}/>}
+          {section==="artist"    && <ArtistSection data={data} onSave={handleSave}/>}
+          {section==="settings"  && <SettingsSection onLogout={onLogout}/>}
+        </div>
+      </div>
+    );
+  }
+
+  function AdminLogin({ onAuth }) {
+    const [pw,setPw]=React.useState("");const[err,setErr]=React.useState("");const[show,setShow]=React.useState(false);
+    const attempt=()=>{if(pw===getStoredPw()){sessionStorage.setItem(ADMIN_AUTH_KEY,"1");onAuth();}else{setErr("Mot de passe incorrect.");setTimeout(()=>setErr(""),2000);setPw("");}};
+    return (
+      <div className="adm-overlay">
+        <div className="adm-card">
+          <div className="adm-logo">
+            <div style={{width:26,height:30,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
+            <div><div className="adm-title">Lea Dimas</div><div className="adm-sub">ADMIN STUDIO</div></div>
+          </div>
+          <div className="adm-field-group">
+            <label className="adm-label">MOT DE PASSE</label>
+            <div style={{position:"relative"}}>
+              <input className="adm-input" type={show?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} placeholder="••••••••" autoFocus/>
+              <button onClick={()=>setShow(s=>!s)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--bone-dim)",cursor:"pointer",fontSize:14}}>{show?"◉":"○"}</button>
+            </div>
+          </div>
+          {err&&<div className="adm-err">{err}</div>}
+          <button className="adm-btn" onClick={attempt}>ACCÉDER →</button>
+          <div className="adm-hint">accès réservé — lea dimas studio</div>
+        </div>
+      </div>
+    );
+  }
+
+  function AdminRouter() {
+    const [authed, setAuthed] = React.useState(()=>!!sessionStorage.getItem(ADMIN_AUTH_KEY));
+    if (window.location.hash !== "#/admin") return null;
+    if (!authed) return <AdminLogin onAuth={()=>setAuthed(true)}/>;
+    return <AdminDashboard onLogout={()=>{sessionStorage.removeItem(ADMIN_AUTH_KEY);setAuthed(false);}}/>;
+  }
+
+  const _am = document.createElement("div");
+  _am.id = "admin-root";
+  document.body.appendChild(_am);
+  ReactDOM.createRoot(_am).render(<AdminRouter/>);
+  </script>
+
+</body>
+</html>
