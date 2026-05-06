@@ -293,9 +293,15 @@
 
   /* ── Auth helpers ── */
   function getActiveSession() { return _activeSession; }
-  function requireAuth() {
-    if (!_activeSession) throw new Error("Non authentifié — action refusée.");
-    return _activeSession;
+  async function requireAuth() {
+    /* use cache first */
+    if (_activeSession) return _activeSession;
+    /* cache miss: ask Supabase directly (handles page-load timing) */
+    const { data } = await _supa.auth.getSession();
+    const sess = data?.session || null;
+    _activeSession = sess;
+    if (!sess) throw new Error("Non authentifié — action refusée.");
+    return sess;
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -320,10 +326,10 @@
 
   async function dbSave(patch) {
     /* ── Auth guard: only authenticated users can write ── */
-    try { requireAuth(); } catch(authErr) {
+    try { await requireAuth(); } catch(authErr) {
       console.warn("[dbSave] Blocked — no active session:", authErr.message);
       _showErrorToast("Écriture refusée : session expirée. Reconnectez-vous.");
-      return null;
+      return null;   /* hard stop — no localStorage fallback for auth failures */
     }
     try {
       const existing = await dbLoad();
@@ -354,9 +360,9 @@
   ══════════════════════════════════════════════════════════════ */
   async function storageUpload(folder, file, mimeType) {
     /* ── Auth guard ── */
-    try { requireAuth(); } catch(authErr) {
+    try { await requireAuth(); } catch(authErr) {
       console.warn("[storageUpload] Blocked — no session:", authErr.message);
-      _showErrorToast("Upload refusé : session expirée.");
+      _showErrorToast("Upload refusé : session expirée. Reconnectez-vous.");
       return null;
     }
     const ext  = file.name ? file.name.split(".").pop() : "bin";
@@ -377,7 +383,7 @@
   }
 
   async function storageDelete(path) {
-    try { requireAuth(); } catch { return; }
+    try { await requireAuth(); } catch { return; }
     try {
       await _supa.storage.from(SUPA_BUCKET).remove([path]);
     } catch (e) {
