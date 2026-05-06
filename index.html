@@ -136,6 +136,131 @@
   .badge-hidden{color:rgba(185,177,163,0.5);border-color:rgba(185,177,163,0.2);background:transparent}
 
 </style>
+  <!-- ── Supabase SDK ──────────────────────────────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+  /* ══════════════════════════════════════════════════════════════
+     SUPABASE CONFIG — change only these two lines
+  ══════════════════════════════════════════════════════════════ */
+  const SUPA_URL    = "https://sohhimyrbmkoqewpbkfy.supabase.co";
+  const SUPA_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvaGhpbXlyYm1rb3Fld3Bia2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODk4MTAsImV4cCI6MjA5MzY2NTgxMH0.KbMQHwJ8cmiEOoHxvJ6OxpNQn-GUEyUcE4ubiRUinsw";
+  const SUPA_BUCKET = "hexaflow";
+  const SUPA_TABLE  = "admin_data";
+
+  /* ── client ── */
+  const _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  /* ══════════════════════════════════════════════════════════════
+     DB HELPERS
+     All data lives in a single JSONB row (id = 'singleton').
+     Structure: { cells, cellVideos, cellPhotos, artist, social, tags }
+  ══════════════════════════════════════════════════════════════ */
+  async function dbLoad() {
+    try {
+      const { data, error } = await _supa
+        .from(SUPA_TABLE)
+        .select("data")
+        .eq("id", "singleton")
+        .single();
+      if (error) throw error;
+      return data?.data || {};
+    } catch (e) {
+      console.warn("[Supabase] dbLoad failed, falling back to localStorage:", e.message);
+      try { return JSON.parse(localStorage.getItem("ld_admin_data") || "{}"); } catch { return {}; }
+    }
+  }
+
+  async function dbSave(patch) {
+    /* merge patch into existing row */
+    try {
+      const existing = await dbLoad();
+      const merged = { ...existing, ...patch };
+      const { error } = await _supa
+        .from(SUPA_TABLE)
+        .upsert({ id: "singleton", data: merged, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      /* mirror to localStorage as cache */
+      localStorage.setItem("ld_admin_data", JSON.stringify(merged));
+      return merged;
+    } catch (e) {
+      console.warn("[Supabase] dbSave failed, saving to localStorage only:", e.message);
+      try {
+        const existing = JSON.parse(localStorage.getItem("ld_admin_data") || "{}");
+        const merged = { ...existing, ...patch };
+        localStorage.setItem("ld_admin_data", JSON.stringify(merged));
+        return merged;
+      } catch { return patch; }
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     STORAGE HELPERS
+     Upload a file → returns public URL string.
+     path format: "photos/uuid.jpg" or "videos/uuid.mp4"
+  ══════════════════════════════════════════════════════════════ */
+  async function storageUpload(folder, file, mimeType) {
+    const ext  = file.name ? file.name.split(".").pop() : "bin";
+    const uuid = crypto.randomUUID ? crypto.randomUUID() : Date.now() + "_" + Math.random().toString(36).slice(2);
+    const path = folder + "/" + uuid + "." + ext;
+    try {
+      const { error } = await _supa.storage
+        .from(SUPA_BUCKET)
+        .upload(path, file, { contentType: mimeType || file.type, upsert: false });
+      if (error) throw error;
+      const { data } = _supa.storage.from(SUPA_BUCKET).getPublicUrl(path);
+      return { url: data.publicUrl, path };
+    } catch (e) {
+      console.warn("[Supabase] storageUpload failed:", e.message);
+      return null;
+    }
+  }
+
+  async function storageDelete(path) {
+    try {
+      await _supa.storage.from(SUPA_BUCKET).remove([path]);
+    } catch (e) {
+      console.warn("[Supabase] storageDelete failed:", e.message);
+    }
+  }
+
+  /* blob → File helper (for compressed images / video blobs) */
+  function dataUrlToFile(dataUrl, filename) {
+    const [header, base64] = dataUrl.split(",");
+    const mimeType = header.match(/:(.*?);/)[1];
+    const binary = atob(base64);
+    const buffer = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
+    return new File([buffer], filename, { type: mimeType });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     INIT — load from Supabase (or localStorage fallback) on boot
+  ══════════════════════════════════════════════════════════════ */
+  window.__supaReady = dbLoad().then(d => {
+    window.__supaData = d;
+    /* inject into live cells immediately */
+    if (d && Object.keys(d).length) {
+      let cells = d.cells && d.cells.length
+        ? d.cells
+        : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
+      const cv = d.cellVideos || {};
+      const cp = d.cellPhotos || {};
+      cells = cells.map(c => {
+        let out = { ...c };
+        if (cv[c.id]) out.videos = cv[c.id];
+        if (cp[c.id]) out.photos = cp[c.id];
+        return out;
+      });
+      window.__LIVE_CELLS = cells;
+      if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
+      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+    }
+    return d;
+  }).catch(e => {
+    console.warn("[Supabase] init failed:", e);
+    return {};
+  });
+  </script>
 </head>
 <body>
   <div id="root"></div>
@@ -1061,7 +1186,7 @@
                   onMouseLeave={e => { if(photo) e.currentTarget.style.borderColor="rgba(212,165,116,0.35)"; }}>
                   {photo && (
                     <>
-                      <img src={photo.dataUrl} alt={photo.title||""} style={{ width:"100%",height:"100%",objectFit:"cover",display:"block",transition:"transform 250ms" }}
+                      <img src={photo.displayUrl||photo.dataUrl} alt={photo.title||""} style={{ width:"100%",height:"100%",objectFit:"cover",display:"block",transition:"transform 250ms" }}
                         onMouseEnter={e=>e.currentTarget.style.transform="scale(1.06)"}
                         onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} />
                       {/* index dot */}
@@ -1096,7 +1221,7 @@
         {/* big photo area */}
         <div style={{ flex:1, position:"relative", overflow:"hidden", background:"#050403" }}
           onClick={e => { e.stopPropagation(); setSelIdx(-1); setGlobalPhotoIdx(-1); }}>
-          <img src={photo.dataUrl} alt={photo.title||""}
+          <img src={photo.displayUrl||photo.dataUrl} alt={photo.title||""}
             style={{
               position:"absolute", top:"50%", left:"50%",
               transform:"translate(-50%,-50%)",
@@ -1124,7 +1249,7 @@
                 style={{ height:"100%", aspectRatio:"1", flexShrink:0, overflow:"hidden", cursor:"pointer", border:"1px solid rgba(212,165,116,0.2)", transition:"border-color 150ms, opacity 150ms", opacity:0.6 }}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--gold-bright)";e.currentTarget.style.opacity="1";}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(212,165,116,0.2)";e.currentTarget.style.opacity="0.6";}}>
-                <img src={p.dataUrl} alt="" style={{ width:"100%",height:"100%",objectFit:"cover",display:"block" }} />
+                <img src={p.displayUrl||p.dataUrl} alt="" style={{ width:"100%",height:"100%",objectFit:"cover",display:"block" }} />
               </div>
             ))}
           </div>
@@ -2054,8 +2179,17 @@
   const ADMIN_DATA_KEY = "ld_admin_data";
 
   function getStoredPw() { return localStorage.getItem(ADMIN_PW_KEY) || "leadimas2026"; }
-  function loadAdminData() { try { const r = localStorage.getItem(ADMIN_DATA_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; } }
-  function saveAdminData(d) { localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(d)); }
+  function loadAdminData() {
+    /* use in-memory cache (populated by Supabase init) */
+    if (window.__supaData && Object.keys(window.__supaData).length) return window.__supaData;
+    try { return JSON.parse(localStorage.getItem(ADMIN_DATA_KEY) || "{}"); } catch { return {}; }
+  }
+  function saveAdminData(d) {
+    window.__supaData = d;
+    localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(d));
+    /* async save to Supabase (fire and forget — localStorage is the immediate cache) */
+    dbSave(d).catch(e => console.warn("[Admin] Supabase save error:", e));
+  }
 
   /* push live cells to portfolio without reload */
   function pushLiveCells(cells) {
@@ -2063,13 +2197,13 @@
     window.dispatchEvent(new CustomEvent("ld-cells-updated"));
   }
 
-  /* init live cells from admin data on page load */
+  /* init live cells — Supabase loads async via window.__supaReady (see head script).
+     Fallback: localStorage cache used immediately while Supabase resolves. */
   (function() {
-    const d = loadAdminData();
+    const d = (function(){ try { return JSON.parse(localStorage.getItem("ld_admin_data")||"{}"); } catch { return {}; } })();
+    if (!d || !Object.keys(d).length) return;
     let cells = d.cells && d.cells.length ? d.cells : window.PORTFOLIO_DATA.cells.map(c=>({...c}));
-    // inject cellVideos and cellPhotos into matching cells
-    const cv = d.cellVideos || {};
-    const cp = d.cellPhotos || {};
+    const cv = d.cellVideos || {}, cp = d.cellPhotos || {};
     cells = cells.map(c => {
       let out = { ...c };
       if (cv[c.id]) out.videos = cv[c.id];
@@ -2077,7 +2211,6 @@
       return out;
     });
     window.__LIVE_CELLS = cells;
-    // also patch PORTFOLIO_DATA so HexContent can read it immediately
     window.PORTFOLIO_DATA.cells = cells;
   })();
 
@@ -2335,7 +2468,20 @@
       const results = [];
       for (const f of arr) {
         const res = await extractVideoThumb(f);
-        results.push({ id: Date.now() + Math.random(), type:"file", blobUrl: res.blobUrl, thumb: res.thumb, title: res.name.replace(/\.[^.]+$/, ""), size: res.size });
+        /* upload video to Supabase Storage */
+        let storageUrl = null;
+        try {
+          const uploaded = await storageUpload("videos", f, f.type);
+          if (uploaded) storageUrl = uploaded.url;
+        } catch(e) { console.warn("[Upload] Video storage failed:", e); }
+        results.push({
+          id: Date.now() + Math.random(), type:"file",
+          blobUrl: storageUrl || res.blobUrl,
+          storageUrl,
+          thumb: res.thumb,
+          title: res.name.replace(/\.[^.]+$/, ""),
+          size: res.size
+        });
       }
       const next = [...videos, ...results];
       setVideos(next); save(next);
@@ -2592,7 +2738,7 @@
         {/* header */}
         <div style={{display:"flex",gap:12,alignItems:"center",padding:"10px 12px"}}>
           <div style={{width:64,height:64,flexShrink:0,overflow:"hidden",border:"1px solid rgba(212,165,116,0.12)",background:"rgba(255,255,255,0.03)"}}>
-            <img src={p.dataUrl} alt={p.title||p.name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+            <img src={p.displayUrl||p.dataUrl} alt={p.title||p.name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
           </div>
           <div style={{flex:1,minWidth:0}}>
             <input className="adm-input" value={p.title||""} placeholder="Titre de la création"
@@ -2660,15 +2806,32 @@
       const results=[];
       const arr=Array.from(files).filter(f=>f.type.startsWith("image/"));
       for(let i=0;i<arr.length;i++){
-        setProgress(Math.round((i/arr.length)*90));
+        setProgress(Math.round((i/arr.length)*85));
         const c=await compressImage(arr[i]);
-        results.push({id:Date.now()+i,dataUrl:c.dataUrl,name:arr[i].name,w:c.w,h:c.h,origSize:Math.round(c.origSize/1024),newSize:Math.round(c.newSize/1024),title:"",description:"",uploadedAt:new Date().toISOString()});
+        /* upload compressed image to Supabase Storage */
+        let storageUrl = null;
+        try {
+          const compressedFile = dataUrlToFile(c.dataUrl, arr[i].name.replace(/\.[^.]+$/, ".jpg"));
+          const uploaded = await storageUpload("photos", compressedFile, "image/jpeg");
+          if (uploaded) storageUrl = uploaded.url;
+        } catch(e) { console.warn("[Upload] Storage failed, keeping dataUrl:", e); }
+        results.push({
+          id: Date.now()+i,
+          dataUrl: c.dataUrl,          /* local preview / fallback */
+          storageUrl: storageUrl,       /* Supabase public URL */
+          displayUrl: storageUrl || c.dataUrl,  /* used for display */
+          name: arr[i].name, w:c.w, h:c.h,
+          origSize:Math.round(c.origSize/1024),
+          newSize:Math.round(c.newSize/1024),
+          title:"", description:"",
+          uploadedAt:new Date().toISOString()
+        });
       }
       setProgress(100);
       const next=[...results,...photos];
       setPhotos(next); save(next);
       setUploading(false);setProgress(0);
-      showToast("✓ "+results.length+" création(s) ajoutée(s)");
+      showToast("✓ "+results.length+" création(s) uploadée(s)"+(results[0]?.storageUrl?" → Supabase":" → local"));
     };
 
     const moveUp=(i)=>{if(i===0)return;const a=[...photos];[a[i-1],a[i]]=[a[i],a[i-1]];setPhotos(a);save(a);};
@@ -2779,7 +2942,12 @@
     const [pw,setPw]=React.useState("");const[pw2,setPw2]=React.useState("");
     const [toast,showToast]=useToast();
     const changePw=()=>{if(pw.length<6){showToast("⚠ Trop court");return;}if(pw!==pw2){showToast("⚠ Mots de passe différents");return;}localStorage.setItem(ADMIN_PW_KEY,pw);setPw("");setPw2("");showToast("✓ Mot de passe mis à jour");};
-    const exportData=()=>{const b=new Blob([JSON.stringify(loadAdminData(),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="leadimas-admin.json";a.click();};
+    const exportData=async()=>{
+      const d = await dbLoad();
+      const b=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="leadimas-admin.json";a.click();
+      showToast("✓ Export depuis Supabase");
+    };
     const clearAll=()=>{if(!confirm("Supprimer TOUTES les données admin ?"))return;localStorage.removeItem(ADMIN_DATA_KEY);showToast("✓ Supprimé");setTimeout(()=>location.reload(),1500);};
     return (
       <div style={{maxWidth:500}}>
@@ -2796,9 +2964,22 @@
           <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— DONNÉES (localStorage)</div>
           <div style={{display:"flex",gap:12,marginTop:12}}><button className="adm-save-btn" onClick={exportData}>EXPORTER JSON</button><button className="adm-danger-btn" onClick={clearAll}>TOUT EFFACER</button></div>
         </div>
-        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.08)",opacity:0.55}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:8}}>— SUPABASE (prochainement)</div>
-          <div style={{fontFamily:"Inter,sans-serif",fontSize:12,color:"var(--bone-dim)"}}>URL · Anon Key · Storage Bucket — migration sans perte.</div>
+        <div style={{padding:"20px 22px",border:"1px solid rgba(110,224,154,0.2)",background:"rgba(110,224,154,0.04)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#6ee09a",boxShadow:"0 0 8px #6ee09a"}}/>
+            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"#6ee09a"}}>SUPABASE CONNECTÉ</div>
+          </div>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.5)",marginBottom:4}}>URL</div>
+          <div style={{fontFamily:"Inter,sans-serif",fontSize:11,color:"var(--bone-dim)",marginBottom:10,wordBreak:"break-all"}}>{SUPA_URL}</div>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.5)",marginBottom:4}}>BUCKET</div>
+          <div style={{fontFamily:"Inter,sans-serif",fontSize:11,color:"var(--bone-dim)",marginBottom:16}}>{SUPA_BUCKET}</div>
+          <button className="adm-save-btn" onClick={async()=>{
+            try{
+              const d=loadAdminData();
+              await dbSave(d);
+              showToast("✓ Synchronisé avec Supabase");
+            }catch(e){showToast("⚠ Erreur Supabase: "+e.message);}
+          }}>↑ FORCER LA SYNCHRO</button>
         </div>
         <div style={{marginTop:24,paddingTop:18,borderTop:"1px solid rgba(212,165,116,0.1)"}}><button className="adm-danger-btn" onClick={onLogout}>↩ DÉCONNEXION</button></div>
       </div>
@@ -2819,13 +3000,41 @@
   function AdminDashboard({ onLogout }) {
     const [section, setSection] = React.useState("dashboard");
     const [data, setData] = React.useState(() => loadAdminData());
+    const [syncing, setSyncing] = React.useState(false);
+    const [syncStatus, setSyncStatus] = React.useState("local");
+
+    /* load fresh data from Supabase when dashboard mounts */
+    React.useEffect(() => {
+      setSyncing(true);
+      (window.__supaReady || Promise.resolve({})).then(d => {
+        if (d && Object.keys(d).length) {
+          setData(d);
+          window.__supaData = d;
+          setSyncStatus("supabase");
+        } else {
+          setSyncStatus("local");
+        }
+        setSyncing(false);
+      }).catch(() => { setSyncing(false); setSyncStatus("offline"); });
+    }, []);
     const handleSave = (patch) => { const next={...data,...patch}; setData(next); saveAdminData(next); };
     return (
       <div className="adm-dash">
         <div className="adm-sidebar">
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}>
             <div style={{width:22,height:26,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
-            <div><div style={{fontFamily:"Fraunces,serif",fontWeight:300,fontSize:16,color:"var(--bone)"}}>Lea Dimas</div><div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",marginTop:2}}>ADMIN</div></div>
+            <div>
+              <div style={{fontFamily:"Fraunces,serif",fontWeight:300,fontSize:16,color:"var(--bone)"}}>Lea Dimas</div>
+              <div style={{display:"flex",alignItems:"center",gap:5,marginTop:2}}>
+                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)"}}>ADMIN</div>
+                <div style={{
+                  width:5,height:5,borderRadius:"50%",flexShrink:0,
+                  background: syncStatus==="supabase" ? "#6ee09a" : syncStatus==="offline" ? "#e05555" : "rgba(212,165,116,0.5)",
+                  boxShadow: syncStatus==="supabase" ? "0 0 6px #6ee09a" : "none",
+                  transition:"all 400ms"
+                }} title={syncStatus==="supabase"?"Supabase ✓":syncStatus==="offline"?"Hors ligne":"Local cache"}/>
+              </div>
+            </div>
           </div>
           <nav style={{flex:1}}>
             {ADM_NAV.map(n=>(
