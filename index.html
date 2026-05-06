@@ -76,7 +76,7 @@
   .adm-field-group{margin-bottom:20px}
   .adm-dash{position:fixed;inset:0;z-index:9998;display:flex;background:#060504}
   .adm-sidebar{width:220px;flex-shrink:0;border-right:1px solid rgba(212,165,116,0.14);background:linear-gradient(180deg,#080704,#050403);display:flex;flex-direction:column;padding:28px 20px}
-  .adm-main{flex:1;overflow-y:auto;padding:36px 44px}
+  .adm-main{flex:1;overflow-y:scroll;padding:36px 44px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .adm-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:2px;cursor:pointer;border:1px solid transparent;font-family:'Inter',sans-serif;font-size:13px;color:var(--bone-dim);transition:all 180ms;background:transparent;width:100%;text-align:left}
   .adm-nav-item:hover{color:var(--bone);background:rgba(212,165,116,0.05);border-color:rgba(212,165,116,0.12)}
   .adm-nav-item.active{color:var(--gold-bright);background:rgba(212,165,116,0.1);border-color:rgba(212,165,116,0.25)}
@@ -2529,6 +2529,12 @@ function Sidebar({
   collapsed,
   onToggle
 }) {
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  React.useEffect(() => {
+    const fn = () => forceUpdate();
+    window.addEventListener("ld-social-updated", fn);
+    return () => window.removeEventListener("ld-social-updated", fn);
+  }, []);
   return React.createElement("aside", {
     className: "desk-sidebar" + (collapsed ? " sidebar-collapsed" : ""),
     style: {
@@ -2709,15 +2715,18 @@ function Sidebar({
       fontSize: 12,
       color: "var(--bone)"
     }
-  }, DATA.social.filter(s => s.visible !== false).map(s => React.createElement("a", {
-    key: s.label,
-    href: s.url,
-    style: {
-      color: "var(--bone)",
-      textDecoration: "none",
-      opacity: 0.75
-    }
-  }, "\u2197 ", s.label))))));
+  }, (() => {
+    const liveSocial = window.PORTFOLIO_DATA?.social || DATA.social;
+    return liveSocial.filter(s => s.visible !== false).map(s => React.createElement("a", {
+      key: s.label,
+      href: s.url,
+      style: {
+        color: "var(--bone)",
+        textDecoration: "none",
+        opacity: 0.75
+      }
+    }, "\u2197 ", s.label));
+  })()))));
 }
 function TopBar({
   revealed,
@@ -5610,6 +5619,7 @@ function ArtistSection({
       social,
       tags
     });
+    window.dispatchEvent(new CustomEvent("ld-social-updated"));
     showToast("✓ Profil sauvegardé");
   };
   return React.createElement("div", null, React.createElement(Toast, {
@@ -6364,7 +6374,12 @@ function MobileNav() {
       if (d.revealedCount !== undefined) setRevealedCount(d.revealedCount);
     };
     window.addEventListener("ld-nav-update", fn);
-    return () => window.removeEventListener("ld-nav-update", fn);
+    const fnSocial = () => setNavItems(n => [...n]);
+    window.addEventListener("ld-social-updated", fnSocial);
+    return () => {
+      window.removeEventListener("ld-nav-update", fn);
+      window.removeEventListener("ld-social-updated", fnSocial);
+    };
   }, []);
   const jump = id => {
     window.dispatchEvent(new CustomEvent("ld-mob-jump", {
@@ -6456,7 +6471,7 @@ function MobileNav() {
       flexDirection: "column",
       gap: 8
     }
-  }, (D.social || []).filter(s => s.visible !== false).map(s => React.createElement("a", {
+  }, (window.PORTFOLIO_DATA?.social || D.social || []).filter(s => s.visible !== false).map(s => React.createElement("a", {
     key: s.label,
     href: s.url,
     style: {
