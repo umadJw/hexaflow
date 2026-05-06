@@ -58,6 +58,160 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(212,165,116,0.18); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(212,165,116,0.35); }
+  /* ── Responsive layout ──────────────────────────────────────── */
+  :root {
+    --sidebar-w: 240px;
+    --topbar-h: 56px;
+    --nav-collapsed-w: 48px;
+  }
+
+  /* Desktop collapsed sidebar */
+  .sidebar-collapsed { transform: translateX(calc(var(--sidebar-w) - var(--nav-collapsed-w))); }
+  .sidebar-collapsed .sidebar-content { opacity: 0; pointer-events: none; }
+  .sidebar-toggle-btn {
+    position: absolute; left: -1px; top: 50%;
+    transform: translateY(-50%) translateX(-100%);
+    width: 22px; height: 48px;
+    background: rgba(5,5,5,0.85);
+    border: 1px solid var(--line);
+    border-right: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--gold);
+    font-size: 10px; transition: background 200ms;
+    clip-path: polygon(0 15%, 100% 0%, 100% 100%, 0 85%);
+  }
+  .sidebar-toggle-btn:hover { background: rgba(212,165,116,0.12); }
+
+  /* ── Mobile nav bottom bar ── */
+  .mobile-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(5,4,3,0.96);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line);
+    height: 60px; align-items: center; justify-content: space-between;
+    padding: 0 20px;
+  }
+  .mobile-nav-btn {
+    background: none; border: none; color: var(--bone-dim);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    letter-spacing: 0.15em; cursor: pointer; display: flex;
+    flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px 8px; transition: color 200ms;
+  }
+  .mobile-nav-btn:hover, .mobile-nav-btn.active { color: var(--gold-bright); }
+  .mobile-nav-icon { font-size: 16px; line-height: 1; }
+
+  /* ── Mobile menu drawer ── */
+  .mobile-drawer-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .mobile-drawer-backdrop.open { display: block; }
+  .mobile-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 301;
+    width: min(320px, 85vw);
+    background: linear-gradient(180deg, #080704, #050403);
+    border-left: 1px solid var(--line-strong);
+    display: flex; flex-direction: column;
+    padding: 0;
+    transform: translateX(100%);
+    transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .mobile-drawer.open { transform: translateX(0); }
+  .mobile-drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mobile-drawer-close {
+    background: none; border: 1px solid var(--line);
+    color: var(--bone-dim); width: 32px; height: 32px;
+    cursor: pointer; font-size: 14px; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 200ms;
+  }
+  .mobile-drawer-close:hover { border-color: var(--gold); color: var(--gold); }
+  .mobile-drawer-nav { flex: 1; overflow-y: auto; padding: 16px 0; }
+  .mobile-drawer-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; background: none; border: none;
+    color: var(--bone); font-family: 'Fraunces', serif;
+    font-size: 18px; font-weight: 400; letter-spacing: -0.01em;
+    cursor: pointer; width: 100%; text-align: left;
+    border-bottom: 1px solid rgba(212,165,116,0.06);
+    transition: all 200ms;
+  }
+  .mobile-drawer-item:hover { background: rgba(212,165,116,0.06); color: var(--gold-bright); }
+  .mobile-drawer-item.active { color: var(--gold-bright); background: rgba(212,165,116,0.08); }
+  .mobile-drawer-item.locked { color: rgba(185,177,163,0.25); cursor: not-allowed; }
+  .mobile-drawer-footer { padding: 20px 24px; border-top: 1px solid var(--line); }
+
+  /* ── Bottom sheet (mobile expanded detail) ── */
+  .bottom-sheet-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 150;
+    background: rgba(0,0,0,0.45);
+  }
+  .bottom-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 151;
+    background: rgba(6,5,4,0.97);
+    border-top: 1px solid var(--line-strong);
+    border-radius: 0;
+    max-height: 70vh; display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bottom-sheet.open { transform: translateY(0); }
+  .bottom-sheet-handle {
+    width: 36px; height: 3px; background: rgba(212,165,116,0.3);
+    border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+    cursor: grab;
+  }
+  .bottom-sheet-content { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
+
+  /* ── Main canvas: respect sidebar state ── */
+  .canvas-full   { padding-right: 240px; }
+  .canvas-narrow { padding-right: 48px; }
+  .canvas-mobile { padding-right: 0; padding-bottom: 60px; }
+
+  /* ── Media queries ── */
+  @media (max-width: 768px) {
+    .desktop-sidebar { display: none !important; }
+    .desktop-topbar  { display: none !important; }
+    .mobile-nav      { display: flex !important; }
+    .bottom-sheet-backdrop { display: block; pointer-events: none; }
+    .bottom-sheet-backdrop.open { pointer-events: auto; }
+  }
+  @media (min-width: 769px) {
+    .mobile-drawer-backdrop { display: none !important; }
+    .bottom-sheet { display: none !important; }
+    .mobile-nav   { display: none !important; }
+  }
+
+  /* ── Mobile hex grid layout ── */
+  @media (max-width: 768px) {
+    /* Reset hex absolute positioning to a scroll list on mobile */
+    .hex-mobile-list {
+      position: relative !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 16px !important;
+      padding: 20px 16px 80px !important;
+      overflow-y: auto !important;
+      height: 100% !important;
+    }
+    .hex-mobile-item {
+      position: relative !important;
+      transform: none !important;
+      left: auto !important; top: auto !important;
+      width: min(340px, 90vw) !important;
+      height: auto !important;
+      flex-shrink: 0 !important;
+    }
+  }
+
   /* ── Admin ───────────────────────────────────────────────────── */
   .adm-overlay{position:fixed;inset:0;z-index:9999;background:var(--obsidian);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
   .adm-card{width:420px;padding:48px 44px;border:1px solid rgba(212,165,116,0.22);background:linear-gradient(160deg,#0c0b09,#050505)}
@@ -1612,69 +1766,101 @@
   }
 
   /* ── Sidebar ────────────────────────────────────────────────────────── */
-  function Sidebar({ activeId, onJump, revealedCount, navItems }) {
+
+  /* ── Responsive hooks ── */
+  function useIsMobile() {
+    const [mobile, setMobile] = React.useState(() => window.innerWidth <= 768);
+    React.useEffect(() => {
+      const fn = () => setMobile(window.innerWidth <= 768);
+      window.addEventListener("resize", fn);
+      return () => window.removeEventListener("resize", fn);
+    }, []);
+    return mobile;
+  }
+
+  function useSidebarCollapsed() {
+    const [collapsed, setCollapsed] = React.useState(() => {
+      try { return localStorage.getItem("ld_sidebar_collapsed") === "1"; } catch { return false; }
+    });
+    const toggle = () => setCollapsed(c => {
+      const next = !c;
+      try { localStorage.setItem("ld_sidebar_collapsed", next ? "1" : "0"); } catch {}
+      return next;
+    });
+    return [collapsed, toggle];
+  }
+
+  function Sidebar({ activeId, onJump, revealedCount, navItems, collapsed, onToggle }) {
+    const sidebarLabel = collapsed ? "›" : "‹";
     return (
-      <aside style={{
+      <aside className={"desktop-sidebar" + (collapsed ? " sidebar-collapsed" : "")} style={{
         position: "fixed", top: 0, right: 0, bottom: 0, width: 240, zIndex: 100,
         borderLeft: "1px solid var(--line)",
         background: "linear-gradient(180deg, rgba(5,5,5,0.6), rgba(5,5,5,0.92))",
         backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         display: "flex", flexDirection: "column", padding: "32px 28px",
+        transition: "transform 350ms cubic-bezier(0.4,0,0.2,1)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 48 }}>
-          <div style={{ width: 28, height: 32, clipPath: HEX_CLIP, background: "linear-gradient(135deg, var(--gold), var(--gold-deep))" }}/>
-          <div>
-            <div style={{ fontFamily: "Fraunces, serif", fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--bone)" }}>{DATA.artist.name}</div>
-            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.2em", color: "var(--gold)", marginTop: 2 }}>
-              {(() => {
-                const s = DATA.artist.studio || "";
-                const last = s.slice(-1);
-                const rest = s.slice(0, -1);
-                return <>{rest}<span
-                  onClick={e => { e.stopPropagation(); window.location.hash = "/admin"; location.reload(); }}
-                  title=""
-                  style={{ cursor: "default", userSelect: "none", color: "var(--gold)" }}
-                >{last}</span></>;
-              })()}
+        {/* collapse toggle tab */}
+        <button className="sidebar-toggle-btn" onClick={onToggle} title={collapsed ? "Ouvrir menu" : "Réduire menu"}>
+          {collapsed ? "›" : "‹"}
+        </button>
+
+        <div className="sidebar-content" style={{ display:"flex", flexDirection:"column", flex:1, transition:"opacity 250ms", overflow:"hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 48 }}>
+            <div style={{ width: 28, height: 32, clipPath: HEX_CLIP, background: "linear-gradient(135deg, var(--gold), var(--gold-deep))", flexShrink:0 }}/>
+            <div>
+              <div style={{ fontFamily: "Fraunces, serif", fontSize: 18, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--bone)" }}>{DATA.artist.name}</div>
+              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.2em", color: "var(--gold)", marginTop: 2 }}>
+                {(() => {
+                  const s = DATA.artist.studio || "";
+                  const last = s.slice(-1);
+                  const rest = s.slice(0, -1);
+                  return <>{rest}<span
+                    onClick={e => { e.stopPropagation(); window.location.hash = "/admin"; }}
+                    style={{ cursor: "default", userSelect: "none", color: "var(--gold)" }}
+                  >{last}</span></>;
+                })()}
+              </div>
             </div>
           </div>
-        </div>
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 14 }}>— INDEX</div>
-          {navItems.map((item, i) => {
-            const active   = activeId === item.id;
-            const revealed = i < revealedCount;
-            return (
-              <button key={item.id}
-                onClick={() => revealed && onJump(item.id)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: "transparent", border: "none", padding: "10px 0",
-                  color: !revealed ? "rgba(185,177,163,0.25)" : active ? "var(--gold-bright)" : "var(--bone)",
-                  fontFamily: "Fraunces, serif", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em",
-                  cursor: revealed ? "pointer" : "not-allowed",
-                  borderBottom: "1px solid rgba(212,165,116,0.08)",
-                  transition: "color 300ms ease, padding-left 300ms ease",
-                  paddingLeft: active ? 14 : 0, position: "relative", textAlign: "left",
-                }}
-              >
-                {active && <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, background: "var(--gold-bright)", clipPath: HEX_CLIP }}/>}
-                <span>{item.label}</span>
-                <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.15em", color: active ? "var(--gold)" : "rgba(185,177,163,0.4)" }}>{item.num}</span>
-              </button>
-            );
-          })}
-        </nav>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 14 }}>— INDEX</div>
+            {navItems.map((item, i) => {
+              const active   = activeId === item.id;
+              const revealed = i < revealedCount;
+              return (
+                <button key={item.id}
+                  onClick={() => revealed && onJump(item.id)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    background: "transparent", border: "none", padding: "10px 0",
+                    color: !revealed ? "rgba(185,177,163,0.25)" : active ? "var(--gold-bright)" : "var(--bone)",
+                    fontFamily: "Fraunces, serif", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em",
+                    cursor: revealed ? "pointer" : "not-allowed",
+                    borderBottom: "1px solid rgba(212,165,116,0.08)",
+                    transition: "color 300ms ease, padding-left 300ms ease",
+                    paddingLeft: active ? 14 : 0, position: "relative", textAlign: "left",
+                  }}
+                >
+                  {active && <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 6, height: 6, background: "var(--gold-bright)", clipPath: HEX_CLIP }}/>}
+                  <span>{item.label}</span>
+                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.15em", color: active ? "var(--gold)" : "rgba(185,177,163,0.4)" }}>{item.num}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-        <SoundPicker />
+          <SoundPicker />
 
-        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
-          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 10 }}>— ELSEWHERE</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--bone)" }}>
-            {DATA.social.map((s) => (
-              <a key={s.label} href={s.url} style={{ color: "var(--bone)", textDecoration: "none", opacity: 0.75 }}>↗ {s.label}</a>
-            ))}
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, letterSpacing: "0.3em", color: "var(--bone-dim)", marginBottom: 10 }}>— ELSEWHERE</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "Inter, sans-serif", fontSize: 12, color: "var(--bone)" }}>
+              {DATA.social.map((s) => (
+                <a key={s.label} href={s.url} style={{ color: "var(--bone)", textDecoration: "none", opacity: 0.75 }}>↗ {s.label}</a>
+              ))}
+            </div>
           </div>
         </div>
       </aside>
@@ -1682,11 +1868,11 @@
   }
 
   /* ── Top bar ────────────────────────────────────────────────────────── */
-  function TopBar({ revealed, total, expandedId, onClose }) {
+  function TopBar({ revealed, total, expandedId, onClose, sidebarOffset }) {
     const progress = (revealed - 1) / Math.max(1, total - 1);
     return (
-      <div style={{
-        position: "fixed", top: 0, left: 0, right: 240, height: 56, zIndex: 90,
+      <div className="desktop-topbar" style={{
+        position: "fixed", top: 0, left: 0, right: sidebarOffset, height: 56, zIndex: 90, transition:"right 350ms cubic-bezier(0.4,0,0.2,1)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 36px",
         borderBottom: "1px solid var(--line)",
@@ -1714,33 +1900,125 @@
     );
   }
 
+  /* ── Shared sidebar offset state for panels ── */
+  window.__sidebarOffset = 240;
+
+  /* ── DetailPanel: desktop = floating panel, mobile = bottom sheet ── */
+  function DetailPanel({ children, paddingRight }) {
+    const isMobile = useIsMobile();
+    const [open, setOpen] = React.useState(false);
+    const startY = React.useRef(null);
+
+    React.useEffect(() => {
+      requestAnimationFrame(() => setOpen(true));
+    }, []);
+
+    const onTouchStart = (e) => { startY.current = e.touches[0].clientY; };
+    const onTouchEnd   = (e) => {
+      if (startY.current !== null) {
+        const dy = e.changedTouches[0].clientY - startY.current;
+        if (dy > 60) window.dispatchEvent(new CustomEvent("ld-close-expanded"));
+        startY.current = null;
+      }
+    };
+
+    if (isMobile) {
+      return (
+        <>
+          <div className={"bottom-sheet-backdrop" + (open?" open":"")}
+            onClick={() => window.dispatchEvent(new CustomEvent("ld-close-expanded"))} />
+          <div className={"bottom-sheet" + (open?" open":"")}
+            onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+            <div className="bottom-sheet-handle"/>
+            <div className="bottom-sheet-content">
+              {children}
+            </div>
+          </div>
+          <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        </>
+      );
+    }
+
+    const pr = paddingRight !== undefined ? paddingRight : window.__sidebarOffset;
+    return (
+      <div style={{ position:"fixed",inset:0,paddingRight:pr,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+        <div style={{ pointerEvents:"auto",marginBottom:48,maxWidth:720,width:"100%",padding:"28px 36px",background:"rgba(8,7,6,0.85)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both" }}>
+          {children}
+        </div>
+        <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      </div>
+    );
+  }
+
+  /* ── Wide panel for video/graphic (2-col layout) ── */
+  function WidePanel({ children, paddingRight }) {
+    const isMobile = useIsMobile();
+    const [open, setOpen] = React.useState(false);
+    const startY = React.useRef(null);
+
+    React.useEffect(() => { requestAnimationFrame(() => setOpen(true)); }, []);
+
+    const onTouchStart = (e) => { startY.current = e.touches[0].clientY; };
+    const onTouchEnd   = (e) => {
+      if (startY.current !== null) {
+        const dy = e.changedTouches[0].clientY - startY.current;
+        if (dy > 60) window.dispatchEvent(new CustomEvent("ld-close-expanded"));
+        startY.current = null;
+      }
+    };
+
+    if (isMobile) {
+      return (
+        <>
+          <div className={"bottom-sheet-backdrop" + (open?" open":"")}
+            onClick={() => window.dispatchEvent(new CustomEvent("ld-close-expanded"))} />
+          <div className={"bottom-sheet" + (open?" open":"")} style={{maxHeight:"80vh"}}
+            onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+            <div className="bottom-sheet-handle"/>
+            <div className="bottom-sheet-content" style={{padding:"12px 16px 80px"}}>
+              {children}
+            </div>
+          </div>
+          <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        </>
+      );
+    }
+
+    const pr = paddingRight !== undefined ? paddingRight : window.__sidebarOffset;
+    return (
+      <div style={{ position:"fixed",inset:0,paddingRight:pr,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+        <div style={{ pointerEvents:"auto",marginBottom:40,width:"min(860px,calc(100vw - "+(pr+20)+"px))",background:"rgba(6,5,4,0.93)",backdropFilter:"blur(18px)",WebkitBackdropFilter:"blur(18px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both",display:"flex",overflow:"hidden" }}>
+          {children}
+        </div>
+        <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      </div>
+    );
+  }
+
   /* ── Expanded detail overlay ────────────────────────────────────────── */
-  function ExpandedDetail({ cell }) {
+  function ExpandedDetail({ cell, sidebarOffset }) {
     if (!cell) return null;
 
     /* ── Video cell: special layout ── */
     if (cell.type === "video") {
       const videos = (cell.videos || []).filter(v => v && (v.url || v.blobUrl));
-      return <VideoExpandedDetail cell={cell} videos={videos} />;
+      return <VideoExpandedDetail cell={cell} videos={videos} sidebarOffset={sidebarOffset} />;
     }
 
     /* ── Graphic cell: photo detail ── */
     if (cell.type === "graphic") {
       const photos = (cell.photos || []).filter(p => p && p.dataUrl);
-      return <GraphicExpandedDetail cell={cell} photos={photos} />;
+      return <GraphicExpandedDetail cell={cell} photos={photos} sidebarOffset={sidebarOffset} />;
     }
 
     /* ── Default layout ── */
     const d = cell.detail || {};
     return (
-      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
-        <div style={{ pointerEvents:"auto",marginBottom:48,maxWidth:720,padding:"28px 36px",background:"rgba(8,7,6,0.85)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both" }}>
-          <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
-          <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:32,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:14 }}>{d.title}</div>
-          <div style={{ fontFamily:"Inter,sans-serif",fontSize:14,lineHeight:1.7,color:"var(--bone-dim)" }} dangerouslySetInnerHTML={{ __html: d.body || "" }} />
-        </div>
-        <style>{`@keyframes fadeUp { from { opacity:0;transform:translateY(24px); } to { opacity:1;transform:translateY(0); } }`}</style>
-      </div>
+      <DetailPanel paddingRight={sidebarOffset}>
+        <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
+        <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:"clamp(22px,3vw,32px)",lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:14 }}>{d.title}</div>
+        <div style={{ fontFamily:"Inter,sans-serif",fontSize:14,lineHeight:1.7,color:"var(--bone-dim)" }} dangerouslySetInnerHTML={{ __html: d.body || "" }} />
+      </DetailPanel>
     );
   }
 
@@ -1770,18 +2048,10 @@
     }
 
     return (
-      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
-        <div style={{
-          pointerEvents:"auto", marginBottom:40,
-          width:"min(860px, calc(100vw - 280px))",
-          background:"rgba(6,5,4,0.92)",
-          backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
-          border:"1px solid var(--line-strong)",
-          animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both",
-          display:"flex", gap:0, overflow:"hidden",
-        }}>
+      <WidePanel paddingRight={sidebarOffset}>
+        <div style={{ display:"flex",width:"100%",overflow:"hidden" }}>
           {/* ── LEFT: video player ── */}
-          <div style={{ flex:"0 0 52%", position:"relative", background:"#000" }}>
+          <div style={{ flex:"0 0 52%", position:"relative", background:"#000", minWidth:0 }}>
             {/* aspect-ratio box */}
             <div style={{ paddingTop:"56.25%", position:"relative" }}>
               {embedUrl ? (
@@ -1841,8 +2111,7 @@
               dangerouslySetInnerHTML={{ __html: vid.description || (n===0 ? cell.detail?.body : "") || "" }} />
           </div>
         </div>
-        <style>{`@keyframes fadeUp { from { opacity:0;transform:translateY(24px); } to { opacity:1;transform:translateY(0); } }`}</style>
-      </div>
+      </WidePanel>
     );
   }
 
@@ -1865,34 +2134,23 @@
     /* ── No photo selected yet: generic cell description ── */
     if (!photo) {
       return (
-        <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
-          <div style={{ pointerEvents:"auto",marginBottom:48,maxWidth:680,width:"100%",padding:"24px 32px",background:"rgba(6,5,4,0.88)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid var(--line-strong)",animation:"fadeUp 600ms cubic-bezier(.2,.7,.2,1) both" }}>
-            <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
-            <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:28,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:12 }}>{d.title || "Identities, type, and editorial systems."}</div>
-            <div style={{ fontFamily:"Inter,sans-serif",fontSize:13,lineHeight:1.7,color:"var(--bone-dim)" }} dangerouslySetInnerHTML={{ __html: d.body || "" }} />
-            {photos.length > 0 && (
-              <div style={{ marginTop:16,fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.2em",color:"rgba(212,165,116,0.4)" }}>
-                ↑ CLIQUER UN CARRÉ POUR VOIR LES DÉTAILS
-              </div>
-            )}
-          </div>
-          <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}`}</style>
-        </div>
+        <DetailPanel paddingRight={sidebarOffset}>
+          <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:10 }}>— {cell.num} / {cell.label.toUpperCase()}</div>
+          <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:28,lineHeight:1.1,letterSpacing:"-0.02em",color:"var(--bone)",marginBottom:12 }}>{d.title || "Identities, type, and editorial systems."}</div>
+          <div style={{ fontFamily:"Inter,sans-serif",fontSize:13,lineHeight:1.7,color:"var(--bone-dim)" }} dangerouslySetInnerHTML={{ __html: d.body || "" }} />
+          {photos.length > 0 && (
+            <div style={{ marginTop:16,fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.2em",color:"rgba(212,165,116,0.4)" }}>
+              ↑ CLIQUER UN CARRÉ POUR VOIR LES DÉTAILS
+            </div>
+          )}
+        </DetailPanel>
       );
     }
 
     /* ── Photo selected: details panel only (photo is in the hex) ── */
     return (
-      <div style={{ position:"fixed",inset:0,paddingRight:240,zIndex:70,pointerEvents:"none",display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
-        <div style={{
-          pointerEvents:"auto", marginBottom:40,
-          width:"min(720px, calc(100vw - 280px))",
-          background:"rgba(6,5,4,0.93)",
-          backdropFilter:"blur(18px)", WebkitBackdropFilter:"blur(18px)",
-          border:"1px solid var(--line-strong)",
-          animation:"fadeUp 400ms cubic-bezier(.2,.7,.2,1) both",
-          display:"flex", overflow:"hidden",
-        }}>
+      <WidePanel paddingRight={sidebarOffset}>
+        <div style={{ display:"flex",width:"100%",overflow:"hidden" }}>
           {/* thin color accent strip */}
           <div style={{ width:3, flexShrink:0, background:"linear-gradient(180deg,var(--gold-deep),var(--gold-bright))" }}/>
 
@@ -1929,8 +2187,7 @@
             </>}
           </div>
         </div>
-        <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      </div>
+      </WidePanel>
     );
   }
 
@@ -1956,6 +2213,20 @@
     const [loaded,        setLoaded]        = useState(false);
     const [revealedCount, setRevealedCount] = useState(1);
     const [expandedId,    setExpandedId]    = useState(null);
+    const isMobile = useIsMobile();
+    const [sidebarCollapsed, toggleSidebar] = useSidebarCollapsed();
+    const [drawerOpen, setDrawerOpen] = React.useState(false);
+
+    /* compute actual sidebar offset for panels */
+    const sidebarOffset = isMobile ? 0 : (sidebarCollapsed ? 48 : 240);
+    window.__sidebarOffset = sidebarOffset;
+
+    /* listen for close-expanded from bottom sheet swipe */
+    React.useEffect(() => {
+      const fn = () => setExpandedId(null);
+      window.addEventListener("ld-close-expanded", fn);
+      return () => window.removeEventListener("ld-close-expanded", fn);
+    }, []);
     const [hovered,       setHovered]       = useState(null);
     const [activeId,      setActiveId]      = useState("intro");
 
@@ -2029,7 +2300,7 @@
       <div>
         <Loader done={loaded} />
 
-        <div style={{ position: "fixed", inset: 0, paddingRight: 240, overflow: "hidden" }}>
+        <div style={{ position: "fixed", inset: 0, paddingRight: sidebarOffset, paddingBottom: isMobile ? 60 : 0, overflow: "hidden", transition: "padding-right 350ms cubic-bezier(0.4,0,0.2,1)" }}>
           <BackgroundHexes visible={tweaks.showBgHexes} clip={clip} />
           <div style={{ position: "absolute", inset: 0 }}
                onClick={(e) => { if (e.target === e.currentTarget) setExpandedId(null); }}>
@@ -2059,7 +2330,7 @@
 
           {tweaks.showHints && (
             <div style={{
-              position: "absolute", bottom: 36, left: 0, right: 240, textAlign: "center",
+              position: "absolute", bottom: 36, left: 0, right: sidebarOffset, textAlign: "center",
               pointerEvents: "none",
               opacity: revealedCount === 1 ? 0 : (expandedId ? 0 : 0.55),
               transition: "opacity 600ms ease",
@@ -2076,9 +2347,65 @@
           )}
         </div>
 
-        <Sidebar activeId={activeId} onJump={onJump} revealedCount={revealedCount} navItems={NAV_ITEMS} />
-        <TopBar revealed={revealedCount} total={total} expandedId={expandedId} onClose={() => setExpandedId(null)} />
-        <ExpandedDetail cell={expandedCell} />
+        <Sidebar activeId={activeId} onJump={onJump} revealedCount={revealedCount} navItems={NAV_ITEMS} collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <TopBar revealed={revealedCount} total={total} expandedId={expandedId} onClose={() => setExpandedId(null)} sidebarOffset={sidebarOffset} />
+        <ExpandedDetail cell={expandedCell} sidebarOffset={sidebarOffset} />
+
+        {/* ── Mobile bottom nav ── */}
+        <nav className="mobile-nav">
+          <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+            <div style={{ width:18,height:20,clipPath:HEX_CLIP,background:"linear-gradient(135deg,var(--gold),var(--gold-deep))" }}/>
+            <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:14,color:"var(--bone)",letterSpacing:"-0.01em" }}>{DATA.artist.name.split(" ")[0]}</div>
+          </div>
+          {expandedId && (
+            <button className="mobile-nav-btn" onClick={() => setExpandedId(null)}>
+              <span className="mobile-nav-icon">✕</span>
+              <span>FERMER</span>
+            </button>
+          )}
+          <button className={"mobile-nav-btn" + (drawerOpen?" active":"")} onClick={() => setDrawerOpen(o => !o)}>
+            <span className="mobile-nav-icon" style={{fontSize:18}}>{drawerOpen ? "✕" : "☰"}</span>
+            <span>MENU</span>
+          </button>
+        </nav>
+
+        {/* ── Mobile drawer ── */}
+        <div className={"mobile-drawer-backdrop" + (drawerOpen?" open":"")} onClick={() => setDrawerOpen(false)} />
+        <div className={"mobile-drawer" + (drawerOpen?" open":"")}>
+          <div className="mobile-drawer-header">
+            <div>
+              <div style={{ fontFamily:"Fraunces,serif",fontWeight:300,fontSize:18,color:"var(--bone)",letterSpacing:"-0.01em" }}>{DATA.artist.name}</div>
+              <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",marginTop:3 }}>{DATA.artist.studio}</div>
+            </div>
+            <button className="mobile-drawer-close" onClick={() => setDrawerOpen(false)}>✕</button>
+          </div>
+          <div style={{ padding:"10px 24px 6px",fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--bone-dim)" }}>— INDEX</div>
+          <div className="mobile-drawer-nav">
+            {NAV_ITEMS.map((item, i) => {
+              const revealed = i < revealedCount;
+              const active   = activeId === item.id;
+              return (
+                <button key={item.id}
+                  className={"mobile-drawer-item" + (active?" active":"") + (!revealed?" locked":"")}
+                  onClick={() => { if(!revealed) return; onJump(item.id); setDrawerOpen(false); }}>
+                  <span>{item.label}</span>
+                  <span style={{ fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.15em",color:active?"var(--gold)":"rgba(185,177,163,0.35)" }}>{item.num}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mobile-drawer-footer">
+            <div style={{ fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--bone-dim)",marginBottom:12 }}>— ELSEWHERE</div>
+            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+              {DATA.social.map(s => (
+                <a key={s.label} href={s.url} style={{ fontFamily:"Inter,sans-serif",fontSize:13,color:"var(--bone)",textDecoration:"none",opacity:0.75 }}>↗ {s.label}</a>
+              ))}
+            </div>
+            <div style={{ marginTop:20,fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.2em",color:"rgba(185,177,163,0.25)" }}>
+              ◉ {DATA.artist.availability}
+            </div>
+          </div>
+        </div>
 
         <TweaksPanel title="Tweaks">
           <TweakSection label="Mood">
@@ -2174,11 +2501,8 @@
 
   <!-- ── Admin Panel ─────────────────────────────────────────────────── -->
   <script type="text/babel">
-  const ADMIN_PW_KEY   = "ld_admin_pw";
-  const ADMIN_AUTH_KEY = "ld_admin_auth";
   const ADMIN_DATA_KEY = "ld_admin_data";
-
-  function getStoredPw() { return localStorage.getItem(ADMIN_PW_KEY) || "leadimas2026"; }
+  /* Auth is handled by Supabase — no passwords stored in this file */
   function loadAdminData() {
     /* use in-memory cache (populated by Supabase init) */
     if (window.__supaData && Object.keys(window.__supaData).length) return window.__supaData;
@@ -2723,7 +3047,7 @@
             <span style={{color:"var(--gold-bright)"}}>◉ Photos</span> — Upload, compression JPEG auto, lazy load<br/>
             <span style={{color:"var(--gold-bright)"}}>◉ Contenu</span> — Textes de chaque cellule (rich text)<br/>
             <span style={{color:"var(--gold-bright)"}}>◉ Profil</span> — Nom, bio, réseaux, balises<br/>
-            <em style={{color:"rgba(185,177,163,0.35)"}}>Accès : index.html#/admin — mot de passe : leadimas2026</em>
+            <em style={{color:"rgba(185,177,163,0.35)"}}>Accès : index.html#/admin — connexion Supabase Auth</em>
           </div>
         </div>
       </div>
@@ -2941,7 +3265,16 @@
   function SettingsSection({ onLogout }) {
     const [pw,setPw]=React.useState("");const[pw2,setPw2]=React.useState("");
     const [toast,showToast]=useToast();
-    const changePw=()=>{if(pw.length<6){showToast("⚠ Trop court");return;}if(pw!==pw2){showToast("⚠ Mots de passe différents");return;}localStorage.setItem(ADMIN_PW_KEY,pw);setPw("");setPw2("");showToast("✓ Mot de passe mis à jour");};
+    const changePw=async()=>{
+      if(pw.length<6){showToast("⚠ Minimum 6 caractères");return;}
+      if(pw!==pw2){showToast("⚠ Mots de passe différents");return;}
+      try {
+        const { error } = await _supa.auth.updateUser({ password: pw });
+        if (error) throw error;
+        setPw(""); setPw2("");
+        showToast("✓ Mot de passe mis à jour dans Supabase");
+      } catch(e) { showToast("⚠ Erreur : " + e.message); }
+    };
     const exportData=async()=>{
       const d = await dbLoad();
       const b=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
@@ -2955,7 +3288,7 @@
         <div className="adm-section-title">Paramètres</div>
         <div className="adm-section-meta">— SÉCURITÉ · EXPORT · SUPABASE-READY</div>
         <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:18,background:"rgba(255,255,255,0.02)"}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14}}>— MOT DE PASSE</div>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14}}>— MOT DE PASSE SUPABASE AUTH</div>
           <div className="adm-field-group"><label className="adm-label">NOUVEAU</label><input className="adm-input" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="6 caractères min."/></div>
           <div className="adm-field-group"><label className="adm-label">CONFIRMER</label><input className="adm-input" type="password" value={pw2} onChange={e=>setPw2(e.target.value)} placeholder="Répéter"/></div>
           <button className="adm-save-btn" onClick={changePw}>CHANGER</button>
@@ -3066,36 +3399,143 @@
     );
   }
 
-  function AdminLogin({ onAuth }) {
-    const [pw,setPw]=React.useState("");const[err,setErr]=React.useState("");const[show,setShow]=React.useState(false);
-    const attempt=()=>{if(pw===getStoredPw()){sessionStorage.setItem(ADMIN_AUTH_KEY,"1");onAuth();}else{setErr("Mot de passe incorrect.");setTimeout(()=>setErr(""),2000);setPw("");}};
+  function AdminLogin({ onAuth, onBack }) {
+    const [email, setEmail] = React.useState("");
+    const [pw,    setPw]    = React.useState("");
+    const [show,  setShow]  = React.useState(false);
+    const [err,   setErr]   = React.useState("");
+    const [loading, setLoading] = React.useState(false);
+
+    const attempt = async () => {
+      if (!email.trim() || !pw) { setErr("Email et mot de passe requis."); return; }
+      setLoading(true); setErr("");
+      try {
+        const { data, error } = await _supa.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password: pw,
+        });
+        if (error) throw error;
+        if (data?.session) {
+          onAuth(data.session);
+        } else {
+          throw new Error("Aucune session retournée.");
+        }
+      } catch (e) {
+        setErr(e.message === "Invalid login credentials"
+          ? "Email ou mot de passe incorrect."
+          : e.message);
+        setPw("");
+      }
+      setLoading(false);
+    };
+
     return (
       <div className="adm-overlay">
+        {/* ── back button top-left ── */}
+        <button
+          onClick={onBack}
+          style={{
+            position:"absolute", top:24, left:28,
+            background:"transparent", border:"none",
+            color:"rgba(185,177,163,0.4)", cursor:"pointer",
+            fontFamily:"JetBrains Mono,monospace", fontSize:10,
+            letterSpacing:"0.25em", display:"flex", alignItems:"center", gap:8,
+            transition:"color 200ms", padding:"6px 0",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.color="var(--bone-dim)"}
+          onMouseLeave={e=>e.currentTarget.style.color="rgba(185,177,163,0.4)"}>
+          ← RETOUR AU SITE
+        </button>
+
         <div className="adm-card">
           <div className="adm-logo">
             <div style={{width:26,height:30,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
             <div><div className="adm-title">Lea Dimas</div><div className="adm-sub">ADMIN STUDIO</div></div>
           </div>
+
+          <div className="adm-field-group">
+            <label className="adm-label">EMAIL</label>
+            <input className="adm-input" type="email" value={email}
+              onChange={e=>setEmail(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&attempt()}
+              placeholder="hello@leadimas.studio"
+              autoFocus autoComplete="email" />
+          </div>
+
           <div className="adm-field-group">
             <label className="adm-label">MOT DE PASSE</label>
             <div style={{position:"relative"}}>
-              <input className="adm-input" type={show?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} placeholder="••••••••" autoFocus/>
-              <button onClick={()=>setShow(s=>!s)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--bone-dim)",cursor:"pointer",fontSize:14}}>{show?"◉":"○"}</button>
+              <input className="adm-input" type={show?"text":"password"} value={pw}
+                onChange={e=>setPw(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&attempt()}
+                placeholder="••••••••"
+                autoComplete="current-password" />
+              <button onClick={()=>setShow(s=>!s)}
+                style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--bone-dim)",cursor:"pointer",fontSize:14}}>
+                {show?"◉":"○"}
+              </button>
             </div>
           </div>
-          {err&&<div className="adm-err">{err}</div>}
-          <button className="adm-btn" onClick={attempt}>ACCÉDER →</button>
-          <div className="adm-hint">accès réservé — lea dimas studio</div>
+
+          {err && <div className="adm-err">{err}</div>}
+
+          <button className="adm-btn" onClick={attempt} disabled={loading}
+            style={{opacity: loading ? 0.6 : 1, cursor: loading ? "default" : "pointer"}}>
+            {loading ? "CONNEXION…" : "ACCÉDER →"}
+          </button>
+
+          <div className="adm-hint">connexion sécurisée via supabase auth</div>
         </div>
       </div>
     );
   }
 
   function AdminRouter() {
-    const [authed, setAuthed] = React.useState(()=>!!sessionStorage.getItem(ADMIN_AUTH_KEY));
-    if (window.location.hash !== "#/admin") return null;
-    if (!authed) return <AdminLogin onAuth={()=>setAuthed(true)}/>;
-    return <AdminDashboard onLogout={()=>{sessionStorage.removeItem(ADMIN_AUTH_KEY);setAuthed(false);}}/>;
+    const [session,  setSession]  = React.useState(null);
+    const [checking, setChecking] = React.useState(true);
+    const [visible,  setVisible]  = React.useState(window.location.hash === "#/admin");
+
+    /* listen for hash changes so back button works without reload */
+    React.useEffect(() => {
+      const onHash = () => setVisible(window.location.hash === "#/admin");
+      window.addEventListener("hashchange", onHash);
+      return () => window.removeEventListener("hashchange", onHash);
+    }, []);
+
+    /* check existing Supabase session on mount */
+    React.useEffect(() => {
+      _supa.auth.getSession().then(({ data }) => {
+        setSession(data?.session || null);
+        setChecking(false);
+      });
+      /* listen for auth state changes (logout from another tab, token refresh…) */
+      const { data: { subscription } } = _supa.auth.onAuthStateChange((_event, sess) => {
+        setSession(sess);
+      });
+      return () => subscription.unsubscribe();
+    }, []);
+
+    if (!visible) return null;
+    if (checking) return (
+      <div className="adm-overlay">
+        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)"}}>VÉRIFICATION…</div>
+      </div>
+    );
+
+    const handleBack = () => {
+      /* remove hash without reload, hide the admin panel */
+      history.pushState("", document.title, window.location.pathname + window.location.search);
+      setVisible(false);
+    };
+
+    const handleLogout = async () => {
+      await _supa.auth.signOut();
+      setSession(null);
+      handleBack();
+    };
+
+    if (!session) return <AdminLogin onAuth={sess => setSession(sess)} onBack={handleBack} />;
+    return <AdminDashboard onLogout={handleLogout} />;
   }
 
   const _am = document.createElement("div");
