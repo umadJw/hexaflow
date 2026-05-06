@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- CDN preconnect for faster loading -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://sohhimyrbmkoqewpbkfy.supabase.co" crossorigin>
-  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Lea Dimas — Portfolio</title>
@@ -431,30 +427,30 @@
   /* ══════════════════════════════════════════════════════════════
      INIT — load from Supabase (or localStorage fallback) on boot
   ══════════════════════════════════════════════════════════════ */
-  window.__supaReady = Promise.resolve({});
-    /* Admin data loaded lazily — only when admin session is active */
-    _supa.auth.getSession().then(({ data }) => {
-      if (data && data.session) {
-        dbLoad().then(d => {
-          window.__supaData = d;
-          if (d && Object.keys(d).length) {
-            let cells = d.cells && d.cells.length
-              ? d.cells
-              : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
-            const cv = d.cellVideos || {}, cp = d.cellPhotos || {};
-            cells = cells.map(c => {
-              let out = { ...c };
-              if (cv[c.id]) out.videos = cv[c.id];
-              if (cp[c.id]) out.photos = cp[c.id];
-              return out;
-            });
-            window.__LIVE_CELLS = cells;
-            if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
-            window.dispatchEvent(new CustomEvent("ld-cells-updated"));
-          }
-        });
-      }
-    });
+  window.__supaReady = dbLoad().then(d => {
+    window.__supaData = d;
+    /* inject into live cells immediately */
+    if (d && Object.keys(d).length) {
+      let cells = d.cells && d.cells.length
+        ? d.cells
+        : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
+      const cv = d.cellVideos || {};
+      const cp = d.cellPhotos || {};
+      cells = cells.map(c => {
+        let out = { ...c };
+        if (cv[c.id]) out.videos = cv[c.id];
+        if (cp[c.id]) out.photos = cp[c.id];
+        return out;
+      });
+      window.__LIVE_CELLS = cells;
+      if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
+      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+    }
+    return d;
+  }).catch(e => {
+    console.warn("[Supabase] init failed:", e);
+    return {};
+  });
   </script>
   <script>
   (function(){
@@ -466,27 +462,12 @@
     }
   })();
   </script>
-
-  <!-- SEO -->
-  <meta name="description" content="Lea Dimas — Motion designer & graphic artist. Video editing, brand identities, editorial systems.">
-  <meta name="keywords" content="motion design, video editing, graphic design, brand identity, portfolio">
-  <meta name="author" content="Lea Dimas">
-  <meta name="robots" content="index, follow">
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Lea Dimas — Studio">
-  <meta property="og:description" content="Motion designer & graphic artist. Video editing, brand identities, editorial systems.">
-  <meta property="og:url" content="https://umadjw.github.io/hexaflow/">
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Lea Dimas — Studio">
-  <meta name="twitter:description" content="Motion designer & graphic artist.">
 </head>
 <body>
   <div id="root"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   
   <!-- ── Data ──────────────────────────────────────────────────────────── -->
   <script>
@@ -503,10 +484,10 @@
     },
 
     social: [
-      { label: "Instagram", url: "#" },
-      { label: "Vimeo",     url: "#" },
-      { label: "Behance",   url: "#" },
-      { label: "Are.na",    url: "#" },
+      { label: "Instagram", url: "#", visible: true },
+      { label: "Vimeo",     url: "#", visible: true },
+      { label: "Behance",   url: "#", visible: true },
+      { label: "Are.na",    url: "#", visible: true },
     ],
 
     cells: [
@@ -577,6 +558,7 @@
       enabled: true,
       volume: 1,
       activePreset: "gold",
+      custom: {}, /* { hover: "url", click: "url", lock: "url" } */
       presets: {
         gold: {
           hover: { freq: 880, dur: 0.05, type: "sine",     gain: 0.015 },
@@ -630,9 +612,26 @@
       o.stop(c.currentTime + (spec.dur || 0.1) + 0.02);
     }
 
+    /* custom audio cache */
+    const _audioCache = {};
+    function playCustom(url) {
+      if (!_audioCache[url]) {
+        _audioCache[url] = new Audio(url);
+        _audioCache[url].volume = window.PORTFOLIO_DATA?.sounds?.volume ?? 1;
+      }
+      const a = _audioCache[url];
+      a.currentTime = 0;
+      a.volume = window.PORTFOLIO_DATA?.sounds?.volume ?? 1;
+      a.play().catch(() => {});
+    }
+
     function play(eventName) {
       const cfg = window.PORTFOLIO_DATA?.sounds;
       if (!cfg || !cfg.enabled) return;
+      /* check for custom sound first */
+      const custom = cfg.custom?.[eventName];
+      if (custom) { playCustom(custom); return; }
+      /* fallback to synth preset */
       const preset = cfg.presets?.[cfg.activePreset];
       if (!preset) return;
       const spec = preset[eventName];
@@ -1989,7 +1988,7 @@ const {
   useRef,
   useMemo
 } = React;
-var HexContent = window.HexContent;
+const HexContent = window.HexContent;
 const SFX = window.SFX;
 const DATA = window.PORTFOLIO_DATA;
 const {
@@ -2710,7 +2709,7 @@ function Sidebar({
       fontSize: 12,
       color: "var(--bone)"
     }
-  }, DATA.social.map(s => React.createElement("a", {
+  }, DATA.social.filter(s => s.visible !== false).map(s => React.createElement("a", {
     key: s.label,
     href: s.url,
     style: {
@@ -3735,6 +3734,10 @@ function pushLiveCells(cells) {
   let cells = d.cells && d.cells.length ? d.cells : window.PORTFOLIO_DATA.cells.map(c => ({
     ...c
   }));
+  if (d.sounds && d.sounds.custom) {
+    if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
+    Object.assign(window.PORTFOLIO_DATA.sounds.custom, d.sounds.custom);
+  }
   const cv = d.cellVideos || {},
     cp = d.cellPhotos || {};
   cells = cells.map(c => {
@@ -4746,6 +4749,267 @@ function HexManagerSection({
     }
   }, "Les hexagones en brouillon sont masqu\xE9s du portfolio public mais restent \xE9ditables ici.", React.createElement("br", null), "Les hexagones originaux ne peuvent pas \xEAtre supprim\xE9s \u2014 uniquement masqu\xE9s."));
 }
+function SoundsSection({
+  data,
+  onSave
+}) {
+  const [custom, setCustom] = React.useState(data.sounds && data.sounds.custom || {});
+  const [uploading, setUploading] = React.useState({});
+  const [toast, showToast] = useToast();
+  const MAX_SIZE = 500 * 1024;
+  const SOUND_SLOTS = [{
+    key: "hover",
+    label: "SURVOL",
+    desc: "Son joué quand la souris passe sur un hexagone"
+  }, {
+    key: "click",
+    label: "CLIC",
+    desc: "Son joué quand on clique sur un hexagone"
+  }, {
+    key: "lock",
+    label: "LOCK",
+    desc: "Son joué pour les hexagones verrouillés"
+  }];
+  const handleUpload = async (key, file) => {
+    if (!file) return;
+    if (file.size > MAX_SIZE) {
+      showToast("⚠ Fichier trop lourd — maximum 500KB. Utilisez un son court (< 3s).");
+      return;
+    }
+    const allowed = ["audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/webm"];
+    if (!allowed.includes(file.type) && !file.name.match(/\.(mp3|ogg|wav|webm)$/i)) {
+      showToast("⚠ Format non supporté. Utilisez MP3, OGG, WAV ou WEBM.");
+      return;
+    }
+    setUploading(u => ({
+      ...u,
+      [key]: true
+    }));
+    try {
+      const uploaded = await storageUpload("sounds", file, file.type);
+      if (!uploaded) throw new Error("Upload échoué");
+      const next = {
+        ...custom,
+        [key]: uploaded.url
+      };
+      setCustom(next);
+      if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
+      window.PORTFOLIO_DATA.sounds.custom[key] = uploaded.url;
+      const soundsData = {
+        ...(data.sounds || {}),
+        custom: next
+      };
+      onSave({
+        sounds: soundsData
+      });
+      showToast("✓ Son « " + key + " » uploadé → Supabase");
+    } catch (e) {
+      showToast("⚠ Erreur : " + e.message);
+    }
+    setUploading(u => ({
+      ...u,
+      [key]: false
+    }));
+  };
+  const removeSound = key => {
+    const next = {
+      ...custom
+    };
+    delete next[key];
+    setCustom(next);
+    if (window.PORTFOLIO_DATA.sounds.custom) delete window.PORTFOLIO_DATA.sounds.custom[key];
+    const soundsData = {
+      ...(data.sounds || {}),
+      custom: next
+    };
+    onSave({
+      sounds: soundsData
+    });
+    showToast("✓ Son supprimé — preset synthé actif");
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Sons personnalis\xE9s"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 HOVER \xB7 CLIC \xB7 LOCK"), React.createElement("div", {
+    style: {
+      padding: "18px 20px",
+      border: "1px solid rgba(212,165,116,0.15)",
+      background: "rgba(255,255,255,0.02)",
+      marginBottom: 28
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 COMMENT \xC7A MARCHE"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 13,
+      color: "var(--bone-dim)",
+      lineHeight: 1.8
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "1."), " Chaque hexagone a 3 \xE9v\xE9nements sonores : ", React.createElement("strong", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "Survol"), ", ", React.createElement("strong", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "Clic"), ", ", React.createElement("strong", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "Lock"), ".", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "2."), " Par d\xE9faut les sons sont g\xE9n\xE9r\xE9s en synth\xE8se (AudioContext \u2014 aucun fichier).", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "3."), " Uploadez votre propre fichier audio pour remplacer un son.", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "4."), " Si vous supprimez un son custom, le preset synth\xE9 reprend automatiquement.", React.createElement("br", null)), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: "10px 14px",
+      background: "rgba(212,165,116,0.06)",
+      border: "1px solid rgba(212,165,116,0.15)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.2em",
+      color: "var(--gold)",
+      marginBottom: 6
+    }
+  }, "\u2014 FORMATS ACCEPT\xC9S"), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10,
+      color: "var(--bone-dim)"
+    }
+  }, "MP3 \xB7 OGG \xB7 WAV \xB7 WEBM \xA0|\xA0 ", React.createElement("span", {
+    style: {
+      color: "#e05555"
+    }
+  }, "MAX 500KB"), " par fichier", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "rgba(185,177,163,0.5)",
+      fontSize: 9
+    }
+  }, "Conseil : sons courts < 3 secondes, normalis\xE9s \xE0 -12dB")))), SOUND_SLOTS.map(({
+    key,
+    label,
+    desc
+  }) => {
+    const hasCustom = !!custom[key];
+    return React.createElement("div", {
+      key: key,
+      style: {
+        padding: "18px 20px",
+        border: "1px solid rgba(212,165,116,0.12)",
+        marginBottom: 10,
+        background: "rgba(255,255,255,0.02)"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8
+      }
+    }, React.createElement("div", null, React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 10,
+        letterSpacing: "0.25em",
+        color: hasCustom ? "#6ee09a" : "var(--gold)"
+      }
+    }, hasCustom ? "● " : "○ ", label), React.createElement("div", {
+      style: {
+        fontFamily: "Inter,sans-serif",
+        fontSize: 12,
+        color: "var(--bone-dim)",
+        marginTop: 3
+      }
+    }, desc)), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "center"
+      }
+    }, hasCustom && React.createElement(React.Fragment, null, React.createElement("button", {
+      className: "adm-ghost-btn",
+      style: {
+        padding: "6px 12px"
+      },
+      onClick: () => {
+        const a = new Audio(custom[key]);
+        a.play().catch(() => {});
+      }
+    }, "\u25B7 \xC9COUTER"), React.createElement("button", {
+      className: "adm-danger-btn",
+      style: {
+        padding: "6px 10px"
+      },
+      onClick: () => removeSound(key)
+    }, "\u2715")), React.createElement("label", {
+      style: {
+        padding: "8px 16px",
+        cursor: "pointer",
+        background: "rgba(212,165,116,0.1)",
+        border: "1px solid rgba(212,165,116,0.3)",
+        color: "var(--gold-bright)",
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 9,
+        letterSpacing: "0.2em",
+        whiteSpace: "nowrap"
+      }
+    }, uploading[key] ? "UPLOAD…" : hasCustom ? "REMPLACER" : "UPLOADER", React.createElement("input", {
+      type: "file",
+      accept: "audio/mp3,audio/mpeg,audio/ogg,audio/wav,audio/webm,.mp3,.ogg,.wav,.webm",
+      style: {
+        display: "none"
+      },
+      onChange: e => e.target.files[0] && handleUpload(key, e.target.files[0])
+    })))), hasCustom && React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 8,
+        letterSpacing: "0.12em",
+        color: "rgba(110,224,154,0.5)",
+        marginTop: 6,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, "\u25CF ", custom[key]), !hasCustom && React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 8,
+        letterSpacing: "0.12em",
+        color: "rgba(185,177,163,0.3)",
+        marginTop: 6
+      }
+    }, "Synth\xE8se active (preset s\xE9lectionn\xE9 dans le panneau du portfolio)"));
+  }));
+}
 function DashboardSection({
   data
 }) {
@@ -5393,14 +5657,43 @@ function ArtistSection({
     className: "adm-field-group"
   }, React.createElement("label", {
     className: "adm-label"
-  }, "R\xC9SEAUX SOCIAUX"), social.map((s, i) => React.createElement("div", {
+  }, "R\xC9SEAUX SOCIAUX"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "var(--bone-dim)",
+      marginBottom: 12,
+      lineHeight: 1.6
+    }
+  }, "Activez ou d\xE9sactivez chaque lien \u2014 les liens d\xE9sactiv\xE9s n'apparaissent plus dans le menu du site."), social.map((s, i) => React.createElement("div", {
     key: i,
     style: {
       display: "flex",
       gap: 10,
-      marginBottom: 8
+      marginBottom: 8,
+      alignItems: "center"
     }
-  }, React.createElement("input", {
+  }, React.createElement("button", {
+    onClick: () => setSocial(p => p.map((x, j) => j === i ? {
+      ...x,
+      visible: !(x.visible !== false)
+    } : x)),
+    style: {
+      width: 36,
+      height: 36,
+      flexShrink: 0,
+      cursor: "pointer",
+      background: s.visible !== false ? "rgba(110,224,154,0.15)" : "rgba(255,255,255,0.04)",
+      border: s.visible !== false ? "1px solid rgba(110,224,154,0.4)" : "1px solid rgba(212,165,116,0.15)",
+      color: s.visible !== false ? "#6ee09a" : "rgba(185,177,163,0.3)",
+      fontSize: 14,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "all 200ms"
+    },
+    title: s.visible !== false ? "Visible — cliquer pour masquer" : "Masqué — cliquer pour afficher"
+  }, s.visible !== false ? "●" : "○"), React.createElement("input", {
     className: "adm-input",
     value: s.label,
     onChange: e => setSocial(p => p.map((x, j) => j === i ? {
@@ -5408,7 +5701,8 @@ function ArtistSection({
       label: e.target.value
     } : x)),
     style: {
-      width: 130
+      width: 120,
+      opacity: s.visible !== false ? 1 : 0.4
     }
   }), React.createElement("input", {
     className: "adm-input",
@@ -5418,10 +5712,28 @@ function ArtistSection({
       url: e.target.value
     } : x)),
     style: {
-      flex: 1
+      flex: 1,
+      opacity: s.visible !== false ? 1 : 0.4
     },
     placeholder: "https://\u2026"
-  })))), React.createElement("button", {
+  }), social.length > 1 && React.createElement("button", {
+    className: "adm-danger-btn",
+    style: {
+      padding: "6px 10px",
+      flexShrink: 0
+    },
+    onClick: () => setSocial(p => p.filter((_, j) => j !== i))
+  }, "\u2715"))), React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      marginTop: 6
+    },
+    onClick: () => setSocial(p => [...p, {
+      label: "Nouveau",
+      url: "https://",
+      visible: true
+    }])
+  }, "+ AJOUTER UN R\xC9SEAU")), React.createElement("button", {
     className: "adm-save-btn",
     onClick: save
   }, "SAUVEGARDER"));
@@ -5661,6 +5973,10 @@ const ADM_NAV = [{
   icon: "◎",
   label: "Profil"
 }, {
+  id: "sounds",
+  icon: "♪",
+  label: "Sons"
+}, {
   id: "settings",
   icon: "⊙",
   label: "Paramètres"
@@ -5823,6 +6139,9 @@ function AdminDashboard({
     onSave: handleSave
   }), section === "settings" && React.createElement(SettingsSection, {
     onLogout: onLogout
+  }), section === "sounds" && React.createElement(SoundsSection, {
+    data: data,
+    onSave: handleSave
   })));
 }
 function AdminLogin({
@@ -6137,7 +6456,7 @@ function MobileNav() {
       flexDirection: "column",
       gap: 8
     }
-  }, (D.social || []).map(s => React.createElement("a", {
+  }, (D.social || []).filter(s => s.visible !== false).map(s => React.createElement("a", {
     key: s.label,
     href: s.url,
     style: {
