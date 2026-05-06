@@ -271,13 +271,32 @@
   /* ══════════════════════════════════════════════════════════════
      SUPABASE CONFIG — change only these two lines
   ══════════════════════════════════════════════════════════════ */
+  /* ════════════════════════════════════════════════════════════════
+     ╔══════════════════════════════════════════════════════════════╗
+     ║              SUPABASE CONFIG — UPDATE HERE ONLY             ║
+     ║  The anon key is intentionally public (safe with RLS).      ║
+     ║  Real protection = RLS policies on Supabase dashboard.      ║
+     ╚══════════════════════════════════════════════════════════════╝
+  ════════════════════════════════════════════════════════════════ */
   const SUPA_URL    = "https://sohhimyrbmkoqewpbkfy.supabase.co";
   const SUPA_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvaGhpbXlyYm1rb3Fld3Bia2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODk4MTAsImV4cCI6MjA5MzY2NTgxMH0.KbMQHwJ8cmiEOoHxvJ6OxpNQn-GUEyUcE4ubiRUinsw";
   const SUPA_BUCKET = "hexaflow";
   const SUPA_TABLE  = "admin_data";
+  /* ══════════════════════════════════════════════════════════════ */
 
-  /* ── client ── */
   const _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  /* ── Session cache (updated by onAuthStateChange) ── */
+  let _activeSession = null;
+  _supa.auth.getSession().then(({ data }) => { _activeSession = data?.session || null; });
+  _supa.auth.onAuthStateChange((_e, sess) => { _activeSession = sess; });
+
+  /* ── Auth helpers ── */
+  function getActiveSession() { return _activeSession; }
+  function requireAuth() {
+    if (!_activeSession) throw new Error("Non authentifié — action refusée.");
+    return _activeSession;
+  }
 
   /* ══════════════════════════════════════════════════════════════
      DB HELPERS
@@ -300,7 +319,12 @@
   }
 
   async function dbSave(patch) {
-    /* merge patch into existing row */
+    /* ── Auth guard: only authenticated users can write ── */
+    try { requireAuth(); } catch(authErr) {
+      console.warn("[dbSave] Blocked — no active session:", authErr.message);
+      _showErrorToast("Écriture refusée : session expirée. Reconnectez-vous.");
+      return null;
+    }
     try {
       const existing = await dbLoad();
       const merged = { ...existing, ...patch };
@@ -308,11 +332,12 @@
         .from(SUPA_TABLE)
         .upsert({ id: "singleton", data: merged, updated_at: new Date().toISOString() });
       if (error) throw error;
-      /* mirror to localStorage as cache */
       localStorage.setItem("ld_admin_data", JSON.stringify(merged));
       return merged;
     } catch (e) {
-      console.warn("[Supabase] dbSave failed, saving to localStorage only:", e.message);
+      console.warn("[Supabase] dbSave failed:", e.message);
+      _showErrorToast("Erreur sauvegarde : " + e.message);
+      /* fallback: save locally so no data is lost */
       try {
         const existing = JSON.parse(localStorage.getItem("ld_admin_data") || "{}");
         const merged = { ...existing, ...patch };
@@ -328,6 +353,12 @@
      path format: "photos/uuid.jpg" or "videos/uuid.mp4"
   ══════════════════════════════════════════════════════════════ */
   async function storageUpload(folder, file, mimeType) {
+    /* ── Auth guard ── */
+    try { requireAuth(); } catch(authErr) {
+      console.warn("[storageUpload] Blocked — no session:", authErr.message);
+      _showErrorToast("Upload refusé : session expirée.");
+      return null;
+    }
     const ext  = file.name ? file.name.split(".").pop() : "bin";
     const uuid = crypto.randomUUID ? crypto.randomUUID() : Date.now() + "_" + Math.random().toString(36).slice(2);
     const path = folder + "/" + uuid + "." + ext;
@@ -340,16 +371,41 @@
       return { url: data.publicUrl, path };
     } catch (e) {
       console.warn("[Supabase] storageUpload failed:", e.message);
+      _showErrorToast("Erreur upload : " + e.message);
       return null;
     }
   }
 
   async function storageDelete(path) {
+    try { requireAuth(); } catch { return; }
     try {
       await _supa.storage.from(SUPA_BUCKET).remove([path]);
     } catch (e) {
       console.warn("[Supabase] storageDelete failed:", e.message);
     }
+  }
+
+  /* ── Global error toast (vanilla, independent of React) ── */
+  function _showErrorToast(msg) {
+    const existing = document.getElementById("_supa_err_toast");
+    if (existing) existing.remove();
+    const el = document.createElement("div");
+    el.id = "_supa_err_toast";
+    el.textContent = "⚠ " + msg;
+    Object.assign(el.style, {
+      position:"fixed", bottom:"72px", left:"50%", transform:"translateX(-50%)",
+      background:"rgba(180,40,40,0.92)", color:"#fff",
+      fontFamily:"'JetBrains Mono',monospace", fontSize:"11px", letterSpacing:"0.15em",
+      padding:"10px 22px", zIndex:"99999", whiteSpace:"nowrap",
+      border:"1px solid rgba(255,100,100,0.4)",
+      animation:"_errIn 300ms ease",
+      pointerEvents:"none",
+    });
+    const style = document.createElement("style");
+    style.textContent = "@keyframes _errIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
+    document.head.appendChild(style);
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
   }
 
   /* blob → File helper (for compressed images / video blobs) */
@@ -3017,7 +3073,11 @@
       const next=[...results,...photos];
       setPhotos(next); save(next);
       setUploading(false);setProgress(0);
-      showToast("✓ "+results.length+" création(s) uploadée(s)"+(results[0]?.storageUrl?" → Supabase":" → local"));
+      const allUploaded = results.every(r => r.storageUrl);
+      const someUploaded = results.some(r => r.storageUrl);
+      if (allUploaded)  showToast("✓ "+results.length+" création(s) → Supabase Storage");
+      else if (someUploaded) showToast("⚠ Partiellement uploadé — vérifiez la session");
+      else              showToast("✓ "+results.length+" création(s) (local — reconnectez-vous pour Supabase)");
     };
 
     const moveUp=(i)=>{if(i===0)return;const a=[...photos];[a[i-1],a[i]]=[a[i],a[i-1]];setPhotos(a);save(a);};
@@ -3151,6 +3211,9 @@
         <div className="adm-section-meta">— SÉCURITÉ · EXPORT · SUPABASE-READY</div>
         <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:18,background:"rgba(255,255,255,0.02)"}}>
           <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14}}>— MOT DE PASSE SUPABASE AUTH</div>
+          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.12em",color:"rgba(110,224,154,0.5)",marginBottom:14}}>
+            ● Session active : {_activeSession?.user?.email || "—"}
+          </div>
           <div className="adm-field-group"><label className="adm-label">NOUVEAU</label><input className="adm-input" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="6 caractères min."/></div>
           <div className="adm-field-group"><label className="adm-label">CONFIRMER</label><input className="adm-input" type="password" value={pw2} onChange={e=>setPw2(e.target.value)} placeholder="Répéter"/></div>
           <button className="adm-save-btn" onClick={changePw}>CHANGER</button>
@@ -3192,7 +3255,7 @@
     { id:"settings",  icon:"⊙", label:"Paramètres" },
   ];
 
-  function AdminDashboard({ onLogout }) {
+  function AdminDashboard({ onLogout, userEmail }) {
     const [section, setSection] = React.useState("dashboard");
     const [data, setData] = React.useState(() => loadAdminData());
     const [syncing, setSyncing] = React.useState(false);
@@ -3229,6 +3292,11 @@
                   transition:"all 400ms"
                 }} title={syncStatus==="supabase"?"Supabase ✓":syncStatus==="offline"?"Hors ligne":"Local cache"}/>
               </div>
+              {userEmail && (
+                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:7,letterSpacing:"0.1em",color:"rgba(110,224,154,0.6)",marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>
+                  ● {userEmail}
+                </div>
+              )}
             </div>
           </div>
           <nav style={{flex:1}}>
@@ -3357,47 +3425,53 @@
     const [checking, setChecking] = React.useState(true);
     const [visible,  setVisible]  = React.useState(window.location.hash === "#/admin");
 
-    /* listen for hash changes so back button works without reload */
     React.useEffect(() => {
       const onHash = () => setVisible(window.location.hash === "#/admin");
       window.addEventListener("hashchange", onHash);
       return () => window.removeEventListener("hashchange", onHash);
     }, []);
 
-    /* check existing Supabase session on mount */
     React.useEffect(() => {
+      /* use cached session first for instant feedback */
+      if (_activeSession) { setSession(_activeSession); setChecking(false); }
+      /* then verify with Supabase */
       _supa.auth.getSession().then(({ data }) => {
-        setSession(data?.session || null);
+        const sess = data?.session || null;
+        setSession(sess);
+        _activeSession = sess;
         setChecking(false);
       });
-      /* listen for auth state changes (logout from another tab, token refresh…) */
       const { data: { subscription } } = _supa.auth.onAuthStateChange((_event, sess) => {
         setSession(sess);
+        _activeSession = sess;
       });
       return () => subscription.unsubscribe();
     }, []);
 
     if (!visible) return null;
+
     if (checking) return (
       <div className="adm-overlay">
-        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)"}}>VÉRIFICATION…</div>
+        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)"}}>
+          VÉRIFICATION SESSION…
+        </div>
       </div>
     );
 
     const handleBack = () => {
-      /* remove hash without reload, hide the admin panel */
       history.pushState("", document.title, window.location.pathname + window.location.search);
       setVisible(false);
     };
 
     const handleLogout = async () => {
       await _supa.auth.signOut();
+      _activeSession = null;
       setSession(null);
       handleBack();
     };
 
-    if (!session) return <AdminLogin onAuth={sess => setSession(sess)} onBack={handleBack} />;
-    return <AdminDashboard onLogout={handleLogout} />;
+    if (!session) return <AdminLogin onAuth={sess => { setSession(sess); _activeSession = sess; }} onBack={handleBack} />;
+    return <AdminDashboard onLogout={handleLogout} userEmail={session.user?.email} />;
   }
 
   const _am = document.createElement("div");
