@@ -37,6 +37,10 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
+  html, body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: auto;
+  }
   body {
     background:
       radial-gradient(1200px 800px at 20% 10%, rgba(212,165,116,0.06), transparent 60%),
@@ -189,27 +193,98 @@
     .mobile-nav   { display: none !important; }
   }
 
-  /* ── Mobile hex grid layout ── */
+  /* ── Mobile hex horizontal scroll ── */
+  .mobile-hex-track {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: row; align-items: center;
+    gap: 16px;
+    padding: 0 24px 0 24px;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: none;
+    /* hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .mobile-hex-track::-webkit-scrollbar { display: none; }
+
+  .mobile-hex-card {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    position: relative;
+    /* hex shape: width = H * sqrt(3)/2 for flat-top */
+    width: 152px;
+    height: 176px;
+    cursor: pointer;
+    transition: transform 300ms ease, opacity 300ms ease;
+  }
+  .mobile-hex-card.expanded {
+    transform: scale(1.08);
+  }
+  .mobile-hex-card .hex-border {
+    position: absolute; inset: 0;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    background: linear-gradient(135deg, rgba(212,165,116,0.55), rgba(212,165,116,0.08) 45%, rgba(212,165,116,0.45));
+  }
+  .mobile-hex-card .hex-inner {
+    position: absolute; inset: 1.5px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    background: linear-gradient(160deg, #0c0b09 0%, #060504 100%);
+    overflow: hidden;
+  }
+  .mobile-hex-card.active .hex-border {
+    background: linear-gradient(135deg, #d4a574 0%, #f0c98b 35%, #8a6635 65%, #e8b560 100%);
+  }
+  .mobile-hex-card.active .hex-inner {
+    background: linear-gradient(160deg, #14110d 0%, #0a0907 100%);
+  }
+  /* index + label inside mobile hex */
+  .mobile-hex-num {
+    position: absolute; top: 22%; left: 18%;
+    font-family: 'JetBrains Mono', monospace; font-size: 8px;
+    letter-spacing: 0.22em; color: var(--gold); opacity: 0.85;
+    pointer-events: none;
+  }
+  .mobile-hex-label {
+    position: absolute; bottom: 22%; left: 0; right: 0;
+    text-align: center;
+    font-family: 'Fraunces', serif; font-weight: 300; font-size: 12px;
+    letter-spacing: -0.01em; color: var(--bone);
+    pointer-events: none; line-height: 1.2;
+  }
+  .mobile-hex-thumb {
+    position: absolute; inset: 0;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  }
+  .mobile-hex-thumb img {
+    width: 100%; height: 100%; object-fit: cover; opacity: 0.5;
+    display: block;
+  }
+  /* swipe hint arrow */
+  .mobile-swipe-hint {
+    position: absolute; bottom: 72px; right: 20px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    letter-spacing: 0.2em; color: rgba(212,165,116,0.4);
+    pointer-events: none; animation: hintFade 3s ease 2s forwards;
+    opacity: 0;
+  }
+  @keyframes hintFade {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @media (min-width: 769px) {
+    .mobile-hex-track { display: none !important; }
+    .mobile-swipe-hint { display: none !important; }
+  }
   @media (max-width: 768px) {
-    /* Reset hex absolute positioning to a scroll list on mobile */
-    .hex-mobile-list {
-      position: relative !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      gap: 16px !important;
-      padding: 20px 16px 80px !important;
-      overflow-y: auto !important;
-      height: 100% !important;
-    }
-    .hex-mobile-item {
-      position: relative !important;
-      transform: none !important;
-      left: auto !important; top: auto !important;
-      width: min(340px, 90vw) !important;
-      height: auto !important;
-      flex-shrink: 0 !important;
-    }
+    /* hide desktop canvas on mobile */
+    .desktop-canvas { display: none !important; }
+    body { overscroll-behavior-y: none; }
+    html { overscroll-behavior-y: none; }
   }
 
   /* ── Admin ───────────────────────────────────────────────────── */
@@ -2191,6 +2266,86 @@
     );
   }
 
+  /* ── MobileHexGrid — horizontal scroll, small fixed hex ── */
+  function MobileHexCard({ cell, index, isActive, isExpanded, onClick, revealed }) {
+    if (!revealed) return null;
+    // pick a thumbnail: photo or video thumb
+    const thumb = (cell.photos && cell.photos[0])
+      ? (cell.photos[0].displayUrl || cell.photos[0].dataUrl)
+      : (cell.videos && cell.videos[0] && cell.videos[0].thumb)
+      ? cell.videos[0].thumb : null;
+
+    const ytThumb = (() => {
+      if (thumb) return null;
+      const v = cell.videos && cell.videos[0];
+      if (!v || !v.url) return null;
+      const m = v.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([-\w]+)/);
+      return m ? "https://img.youtube.com/vi/" + m[1] + "/hqdefault.jpg" : null;
+    })();
+    const imgSrc = thumb || ytThumb;
+
+    return (
+      <div
+        className={"mobile-hex-card" + (isActive || isExpanded ? " active" : "") + (isExpanded ? " expanded" : "")}
+        onClick={() => onClick(cell)}>
+        <div className="hex-border"/>
+        <div className="hex-inner">
+          {imgSrc && (
+            <div className="mobile-hex-thumb">
+              <img src={imgSrc} alt="" />
+            </div>
+          )}
+          <span className="mobile-hex-num">— {cell.num}</span>
+          <div className="mobile-hex-label">
+            {cell.label.split(" ").map((w, i) => <span key={i} style={{display:"block"}}>{w}</span>)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function MobileHexGrid({ cells, revealedCount, expandedId, activeId, onCellClick }) {
+    const trackRef = React.useRef(null);
+    const [showHint, setShowHint] = React.useState(true);
+
+    // scroll to active cell when expandedId changes
+    React.useEffect(() => {
+      if (!expandedId || !trackRef.current) return;
+      const idx = cells.findIndex(c => c.id === expandedId);
+      if (idx < 0) return;
+      const card = trackRef.current.children[idx];
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }, [expandedId]);
+
+    React.useEffect(() => {
+      const t = setTimeout(() => setShowHint(false), 6000);
+      return () => clearTimeout(t);
+    }, []);
+
+    return (
+      <div style={{ position:"absolute", inset:0 }}>
+        <div ref={trackRef} className="mobile-hex-track">
+          {cells.map((cell, i) => (
+            <MobileHexCard
+              key={cell.id}
+              cell={cell}
+              index={i}
+              isActive={activeId === cell.id}
+              isExpanded={expandedId === cell.id}
+              onClick={onCellClick}
+              revealed={i < revealedCount}
+            />
+          ))}
+          {/* spacer at end */}
+          <div style={{ width:24, flexShrink:0 }} />
+        </div>
+        {showHint && (
+          <div className="mobile-swipe-hint">swipe ›</div>
+        )}
+      </div>
+    );
+  }
+
   /* ── App root ───────────────────────────────────────────────────────── */
   function App() {
     const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -2300,7 +2455,7 @@
       <div>
         <Loader done={loaded} />
 
-        <div style={{ position: "fixed", inset: 0, paddingRight: sidebarOffset, paddingBottom: isMobile ? 60 : 0, overflow: "hidden", transition: "padding-right 350ms cubic-bezier(0.4,0,0.2,1)" }}>
+        <div className="desktop-canvas" style={{ position: "fixed", inset: 0, paddingRight: sidebarOffset, overflow: "hidden", transition: "padding-right 350ms cubic-bezier(0.4,0,0.2,1)" }}>
           <BackgroundHexes visible={tweaks.showBgHexes} clip={clip} />
           <div style={{ position: "absolute", inset: 0 }}
                onClick={(e) => { if (e.target === e.currentTarget) setExpandedId(null); }}>
@@ -2346,6 +2501,19 @@
             }}/>
           )}
         </div>
+
+        {/* ── Mobile hex grid ── */}
+        {isMobile && (
+          <div style={{ position:"fixed", inset:0, paddingBottom:60, background:"var(--obsidian)" }}>
+            <MobileHexGrid
+              cells={CELLS_RENDERED}
+              revealedCount={revealedCount}
+              expandedId={expandedId}
+              activeId={activeId}
+              onCellClick={onCellClick}
+            />
+          </div>
+        )}
 
         <Sidebar activeId={activeId} onJump={onJump} revealedCount={revealedCount} navItems={NAV_ITEMS} collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         <TopBar revealed={revealedCount} total={total} expandedId={expandedId} onClose={() => setExpandedId(null)} sidebarOffset={sidebarOffset} />
