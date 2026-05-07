@@ -3492,1365 +3492,3236 @@ function App() {
   }))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
-})();</script><script type="text/babel">const ADMIN_DATA_KEY = "ld_admin_data";
-  
-  function loadAdminData() {
-    
-    if (window.__supaData && Object.keys(window.__supaData).length) return window.__supaData;
-    try { return JSON.parse(localStorage.getItem(ADMIN_DATA_KEY) || "{}"); } catch { return {}; }
+})();</script><script>(function() {
+const ADMIN_DATA_KEY = "ld_admin_data";
+function loadAdminData() {
+  if (window.__supaData && Object.keys(window.__supaData).length) return window.__supaData;
+  try {
+    return JSON.parse(localStorage.getItem(ADMIN_DATA_KEY) || "{}");
+  } catch {
+    return {};
   }
-  function saveAdminData(d) {
-    window.__supaData = d;
-    
+}
+function saveAdminData(d) {
+  window.__supaData = d;
+  try {
+    const lean = JSON.parse(JSON.stringify(d));
+    if (lean.cellPhotos) Object.keys(lean.cellPhotos).forEach(k => {
+      lean.cellPhotos[k] = (lean.cellPhotos[k] || []).map(({
+        dataUrl,
+        ...r
+      }) => r);
+    });
+    localStorage.setItem("ld_admin_data", JSON.stringify(lean));
+  } catch (e) {
+    console.warn("[localStorage] Quota exceeded:", e.message);
+  }
+  dbSave(d).catch(e => console.warn("[Admin] Supabase save error:", e));
+}
+function pushLiveCells(cells) {
+  const d = window.__supaData || {};
+  const cv = d.cellVideos || {};
+  const cp = d.cellPhotos || {};
+  const merged = cells.map(c => {
+    const out = {
+      ...c
+    };
+    if (cv[c.id]) out.videos = cv[c.id];
+    if (cp[c.id]) out.photos = cp[c.id];
+    return out;
+  });
+  window.__LIVE_CELLS = merged;
+  window.PORTFOLIO_DATA.cells = merged;
+  window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+}
+(function () {
+  const d = function () {
     try {
-      const lean = JSON.parse(JSON.stringify(d));
-      if (lean.cellPhotos) Object.keys(lean.cellPhotos).forEach(k => {
-        lean.cellPhotos[k] = (lean.cellPhotos[k]||[]).map(({dataUrl,...r})=>r);
-      });
-      localStorage.setItem("ld_admin_data", JSON.stringify(lean));
-    } catch(e) { console.warn("[localStorage] Quota exceeded:", e.message); }
-    dbSave(d).catch(e => console.warn("[Admin] Supabase save error:", e));
+      return JSON.parse(localStorage.getItem("ld_admin_data") || "{}");
+    } catch {
+      return {};
+    }
+  }();
+  if (!d || !Object.keys(d).length) return;
+  let cells = d.cells && d.cells.length ? d.cells : window.PORTFOLIO_DATA.cells.map(c => ({
+    ...c
+  }));
+  if (d.sounds && d.sounds.custom) {
+    if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
+    Object.assign(window.PORTFOLIO_DATA.sounds.custom, d.sounds.custom);
   }
-
-  
-  function pushLiveCells(cells) {
-    const d = window.__supaData || {};
-    const cv = (d.cellVideos || {});
-    const cp = (d.cellPhotos || {});
-    const merged = cells.map(c => {
-      const out = { ...c };
-      if (cv[c.id]) out.videos = cv[c.id];
-      if (cp[c.id]) out.photos = cp[c.id];
-      return out;
+  const cv = d.cellVideos || {},
+    cp = d.cellPhotos || {};
+  cells = cells.map(c => {
+    let out = {
+      ...c
+    };
+    if (cv[c.id]) out.videos = cv[c.id];
+    if (cp[c.id]) out.photos = cp[c.id];
+    return out;
+  });
+  window.__LIVE_CELLS = cells;
+  window.PORTFOLIO_DATA.cells = cells;
+})();
+async function compressImage(file, maxW = 1200, quality = 0.82) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale),
+          h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve({
+          dataUrl: canvas.toDataURL("image/jpeg", quality),
+          w,
+          h,
+          origSize: file.size,
+          newSize: blob.size
+        }), "image/jpeg", quality);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function extractVideoThumb(file) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.src = url;
+    video.onloadeddata = () => {
+      video.currentTime = 1;
+      video.onseeked = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 320;
+        canvas.height = 180;
+        canvas.getContext("2d").drawImage(video, 0, 0, 320, 180);
+        const thumb = canvas.toDataURL("image/jpeg", 0.7);
+        URL.revokeObjectURL(url);
+        resolve({
+          blobUrl: URL.createObjectURL(file),
+          thumb,
+          name: file.name,
+          size: file.size
+        });
+      };
+    };
+    video.onerror = () => resolve({
+      blobUrl: URL.createObjectURL(file),
+      thumb: null,
+      name: file.name,
+      size: file.size
     });
-    window.__LIVE_CELLS = merged;
-    window.PORTFOLIO_DATA.cells = merged;
+  });
+}
+function Toast({
+  msg
+}) {
+  if (!msg) return null;
+  return React.createElement("div", {
+    className: "adm-toast"
+  }, msg);
+}
+function useToast() {
+  const [msg, setMsg] = React.useState("");
+  const show = m => {
+    setMsg(m);
+    setTimeout(() => setMsg(""), 3000);
+  };
+  return [msg, show];
+}
+function RichToolbar({
+  targetRef
+}) {
+  const exec = (cmd, val) => {
+    if (targetRef.current) {
+      targetRef.current.focus();
+      document.execCommand(cmd, false, val || null);
+    }
+  };
+  const FONTS = ["Inter", "Fraunces", "JetBrains Mono", "Georgia", "Arial", "Times New Roman"];
+  return React.createElement("div", {
+    className: "adm-toolbar"
+  }, React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("bold")
+  }, React.createElement("b", null, "B")), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("italic")
+  }, React.createElement("i", null, "I")), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("underline")
+  }, React.createElement("u", null, "U")), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("strikeThrough"),
+    style: {
+      textDecoration: "line-through"
+    }
+  }, "S"), React.createElement("div", {
+    className: "adm-tb-sep"
+  }), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("formatBlock", "H1")
+  }, "H1"), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("formatBlock", "H2")
+  }, "H2"), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("formatBlock", "H3")
+  }, "H3"), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("formatBlock", "P")
+  }, "\xB6"), React.createElement("div", {
+    className: "adm-tb-sep"
+  }), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("insertUnorderedList")
+  }, "\u2022 \u2014"), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("insertOrderedList")
+  }, "1."), React.createElement("div", {
+    className: "adm-tb-sep"
+  }), React.createElement("select", {
+    className: "adm-tb-select",
+    defaultValue: "",
+    onChange: e => exec("fontName", e.target.value)
+  }, React.createElement("option", {
+    value: "",
+    disabled: true
+  }, "Police"), FONTS.map(f => React.createElement("option", {
+    key: f,
+    value: f
+  }, f))), React.createElement("select", {
+    className: "adm-tb-select",
+    defaultValue: "",
+    onChange: e => exec("fontSize", e.target.value)
+  }, React.createElement("option", {
+    value: "",
+    disabled: true
+  }, "Taille"), [1, 2, 3, 4, 5, 6, 7].map(s => React.createElement("option", {
+    key: s,
+    value: s
+  }, ["8", "10", "12", "14", "18", "24", "36"][s - 1], "px"))), React.createElement("div", {
+    className: "adm-tb-sep"
+  }), React.createElement("input", {
+    type: "color",
+    style: {
+      width: 28,
+      height: 26,
+      border: "1px solid rgba(212,165,116,0.2)",
+      background: "transparent",
+      cursor: "pointer",
+      padding: 2
+    },
+    onChange: e => exec("foreColor", e.target.value)
+  }), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("removeFormat")
+  }, "\u2715"));
+}
+function RichEditor({
+  id,
+  value,
+  onChange,
+  placeholder
+}) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (ref.current) ref.current.innerHTML = value || "";
+  }, [id]);
+  return React.createElement("div", null, React.createElement(RichToolbar, {
+    targetRef: ref
+  }), React.createElement("div", {
+    ref: ref,
+    className: "adm-rich-editor",
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    onInput: () => onChange && onChange(ref.current.innerHTML),
+    "data-placeholder": placeholder || ""
+  }), React.createElement("style", null, ".adm-rich-editor:empty:before{content:attr(data-placeholder);color:rgba(185,177,163,0.3);pointer-events:none}"));
+}
+function LazyImg({
+  src,
+  alt
+}) {
+  const ref = React.useRef(null);
+  const [loaded, setLoaded] = React.useState(false);
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setLoaded(true);
+        obs.disconnect();
+      }
+    }, {
+      rootMargin: "200px"
+    });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return React.createElement("div", {
+    ref: ref,
+    style: {
+      position: "relative",
+      aspectRatio: "4/3"
+    }
+  }, !loaded && React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "rgba(212,165,116,0.3)",
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10
+    }
+  }, "\u2026"), loaded && React.createElement("img", {
+    src: src,
+    alt: alt,
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      display: "block"
+    }
+  }));
+}
+function TagInput({
+  tags,
+  onChange
+}) {
+  const [input, setInput] = React.useState("");
+  const add = () => {
+    const v = input.trim();
+    if (v && !tags.includes(v)) {
+      onChange([...tags, v]);
+      setInput("");
+    }
+  };
+  return React.createElement("div", null, React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      marginBottom: 8
+    }
+  }, tags.map(t => React.createElement("span", {
+    key: t,
+    className: "adm-tag"
+  }, t, React.createElement("button", {
+    onClick: () => onChange(tags.filter(x => x !== t))
+  }, "\xD7")))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, React.createElement("input", {
+    className: "adm-input",
+    style: {
+      flex: 1
+    },
+    placeholder: "Ajouter balise\u2026",
+    value: input,
+    onChange: e => setInput(e.target.value),
+    onKeyDown: e => e.key === "Enter" && (e.preventDefault(), add())
+  }), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: add
+  }, "+")));
+}
+function VideoAdminCard({
+  v,
+  i,
+  onUpdate,
+  onMoveUp,
+  onMoveDown,
+  onDelete,
+  isFirst,
+  isLast
+}) {
+  const [open, setOpen] = React.useState(false);
+  let thumbSrc = v.thumb || null;
+  if (!thumbSrc && v.url) {
+    const m = v.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([-\w]+)/);
+    if (m) thumbSrc = "https://img.youtube.com/vi/" + m[1] + "/hqdefault.jpg";
+  }
+  return React.createElement("div", {
+    style: {
+      border: "1px solid rgba(212,165,116,0.15)",
+      marginBottom: 8,
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      padding: "12px 14px"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: 80,
+      height: 45,
+      flexShrink: 0,
+      background: "rgba(255,255,255,0.05)",
+      overflow: "hidden",
+      border: "1px solid rgba(212,165,116,0.1)"
+    }
+  }, thumbSrc ? React.createElement("img", {
+    src: thumbSrc,
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    }
+  }) : React.createElement("div", {
+    style: {
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "rgba(212,165,116,0.3)",
+      fontSize: 14
+    }
+  }, "\u25B7")), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("input", {
+    className: "adm-input",
+    value: v.title || "",
+    placeholder: "Titre de la vid\xE9o",
+    onChange: e => onUpdate(v.id, {
+      title: e.target.value
+    }),
+    style: {
+      marginBottom: 4,
+      padding: "6px 10px",
+      fontSize: 13
+    }
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.12em",
+      color: "rgba(185,177,163,0.4)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, v.type === "url" ? v.url : "📁 " + v.title + (v.size ? " — " + Math.round(v.size / 1024 / 1024 * 10) / 10 + "MB" : ""))), React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      padding: "6px 12px",
+      fontSize: 10
+    },
+    onClick: () => setOpen(o => !o)
+  }, open ? "FERMER ▲" : "DÉTAILS ▼"), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    }
+  }, React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      padding: "3px 7px",
+      fontSize: 11,
+      opacity: isFirst ? 0.3 : 1
+    },
+    onClick: onMoveUp,
+    disabled: isFirst
+  }, "\u2191"), React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      padding: "3px 7px",
+      fontSize: 11,
+      opacity: isLast ? 0.3 : 1
+    },
+    onClick: onMoveDown,
+    disabled: isLast
+  }, "\u2193")), React.createElement("button", {
+    className: "adm-danger-btn",
+    style: {
+      padding: "8px 12px"
+    },
+    onClick: onDelete
+  }, "\u2715")), open && React.createElement("div", {
+    style: {
+      padding: "0 14px 16px",
+      borderTop: "1px solid rgba(212,165,116,0.1)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      margin: "14px 0 12px"
+    }
+  }, "\u2014 M\xC9TADONN\xC9ES \xB7 affich\xE9es dans le panneau du bas"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr 1fr",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, [["year", "ANNÉE", "2025"], ["client", "CLIENT", "Studio X"], ["duration", "DURÉE", "3:24"], ["format", "FORMAT", "16:9 · 4K"]].map(([k, l, ph]) => React.createElement("div", {
+    key: k
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, l), React.createElement("input", {
+    className: "adm-input",
+    value: v[k] || "",
+    placeholder: ph,
+    style: {
+      padding: "7px 10px",
+      fontSize: 12
+    },
+    onChange: e => onUpdate(v.id, {
+      [k]: e.target.value
+    })
+  })))), React.createElement("label", {
+    className: "adm-label"
+  }, "DESCRIPTION (rich text \xB7 panneau du bas)"), React.createElement(VideoRichEditor, {
+    id: "vdesc-" + v.id,
+    value: v.description || "",
+    onChange: val => onUpdate(v.id, {
+      description: val
+    })
+  })));
+}
+function VideoRichEditor({
+  id,
+  value,
+  onChange
+}) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (ref.current) ref.current.innerHTML = value || "";
+  }, [id]);
+  const exec = (cmd, val) => {
+    if (ref.current) {
+      ref.current.focus();
+      document.execCommand(cmd, false, val || null);
+    }
+  };
+  return React.createElement("div", null, React.createElement("div", {
+    className: "adm-toolbar",
+    style: {
+      flexWrap: "nowrap",
+      gap: 2
+    }
+  }, React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("bold")
+  }, React.createElement("b", null, "B")), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("italic")
+  }, React.createElement("i", null, "I")), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("underline")
+  }, React.createElement("u", null, "U")), React.createElement("div", {
+    className: "adm-tb-sep"
+  }), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("insertUnorderedList")
+  }, "\u2022 \u2014"), React.createElement("button", {
+    className: "adm-tb-btn",
+    onClick: () => exec("removeFormat")
+  }, "\u2715")), React.createElement("div", {
+    ref: ref,
+    className: "adm-rich-editor",
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    style: {
+      minHeight: 70
+    },
+    onInput: () => onChange && onChange(ref.current.innerHTML),
+    "data-placeholder": "Description de la vid\xE9o\u2026"
+  }), React.createElement("style", null, ".adm-rich-editor:empty:before{content:attr(data-placeholder);color:rgba(185,177,163,0.3);pointer-events:none}"));
+}
+function VideoAdminSection({
+  data,
+  onSave
+}) {
+  const cellVideos = data.cellVideos || {};
+  const [videos, setVideos] = React.useState(cellVideos.video || []);
+  const [toast, showToast] = useToast();
+  const [urlInput, setUrlInput] = React.useState("");
+  const [urlTitle, setUrlTitle] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+  const dropRef = React.useRef(null);
+  const save = vids => {
+    const next = {
+      ...cellVideos,
+      video: vids
+    };
+    onSave({
+      cellVideos: next
+    });
+    const liveCells = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c => c.id === "video" ? {
+      ...c,
+      videos: vids
+    } : c);
+    window.__LIVE_CELLS = liveCells;
+    window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c => c.id === "video" ? {
+      ...c,
+      videos: vids
+    } : c);
     window.dispatchEvent(new CustomEvent("ld-cells-updated"));
-  }
-
-  
-  (function() {
-    const d = (function(){ try { return JSON.parse(localStorage.getItem("ld_admin_data")||"{}"); } catch { return {}; } })();
-    if (!d || !Object.keys(d).length) return;
-    let cells = d.cells && d.cells.length ? d.cells : window.PORTFOLIO_DATA.cells.map(c=>({...c}));
-    
-    if (d.sounds && d.sounds.custom) {
-      if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
-      Object.assign(window.PORTFOLIO_DATA.sounds.custom, d.sounds.custom);
-    }
-    const cv = d.cellVideos || {}, cp = d.cellPhotos || {};
-    cells = cells.map(c => {
-      let out = { ...c };
-      if (cv[c.id]) out.videos = cv[c.id];
-      if (cp[c.id]) out.photos = cp[c.id];
-      return out;
-    });
-    window.__LIVE_CELLS = cells;
-    window.PORTFOLIO_DATA.cells = cells;
-  })();
-
-  
-  async function compressImage(file, maxW=1200, quality=0.82) {
-    return new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, maxW/img.width);
-          const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
-          const canvas = document.createElement("canvas");
-          canvas.width = w; canvas.height = h;
-          canvas.getContext("2d").drawImage(img,0,0,w,h);
-          canvas.toBlob(blob => resolve({ dataUrl: canvas.toDataURL("image/jpeg", quality), w, h, origSize: file.size, newSize: blob.size }), "image/jpeg", quality);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  
-  function extractVideoThumb(file) {
-    return new Promise(resolve => {
-      const url = URL.createObjectURL(file);
-      const video = document.createElement("video");
-      video.preload = "metadata"; video.muted = true; video.src = url;
-      video.onloadeddata = () => {
-        video.currentTime = 1;
-        video.onseeked = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = 320; canvas.height = 180;
-          canvas.getContext("2d").drawImage(video, 0, 0, 320, 180);
-          const thumb = canvas.toDataURL("image/jpeg", 0.7);
-          URL.revokeObjectURL(url);
-          resolve({ blobUrl: URL.createObjectURL(file), thumb, name: file.name, size: file.size });
-        };
-      };
-      video.onerror = () => resolve({ blobUrl: URL.createObjectURL(file), thumb: null, name: file.name, size: file.size });
-    });
-  }
-
-  
-  function Toast({ msg }) { if(!msg) return null; return <div className="adm-toast">{msg}</div>; }
-  function useToast() {
-    const [msg, setMsg] = React.useState("");
-    const show = m => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
-    return [msg, show];
-  }
-
-  
-  function RichToolbar({ targetRef }) {
-    const exec = (cmd, val) => { if(targetRef.current){targetRef.current.focus();document.execCommand(cmd,false,val||null);} };
-    const FONTS = ["Inter","Fraunces","JetBrains Mono","Georgia","Arial","Times New Roman"];
-    return (
-      <div className="adm-toolbar">
-        <button className="adm-tb-btn" onClick={() => exec("bold")}><b>B</b></button>
-        <button className="adm-tb-btn" onClick={() => exec("italic")}><i>I</i></button>
-        <button className="adm-tb-btn" onClick={() => exec("underline")}><u>U</u></button>
-        <button className="adm-tb-btn" onClick={() => exec("strikeThrough")} style={{textDecoration:"line-through"}}>S</button>
-        <div className="adm-tb-sep"/>
-        <button className="adm-tb-btn" onClick={() => exec("formatBlock","H1")}>H1</button>
-        <button className="adm-tb-btn" onClick={() => exec("formatBlock","H2")}>H2</button>
-        <button className="adm-tb-btn" onClick={() => exec("formatBlock","H3")}>H3</button>
-        <button className="adm-tb-btn" onClick={() => exec("formatBlock","P")}>¶</button>
-        <div className="adm-tb-sep"/>
-        <button className="adm-tb-btn" onClick={() => exec("insertUnorderedList")}>• —</button>
-        <button className="adm-tb-btn" onClick={() => exec("insertOrderedList")}>1.</button>
-        <div className="adm-tb-sep"/>
-        <select className="adm-tb-select" defaultValue="" onChange={e => exec("fontName",e.target.value)}>
-          <option value="" disabled>Police</option>
-          {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
-        </select>
-        <select className="adm-tb-select" defaultValue="" onChange={e => exec("fontSize",e.target.value)}>
-          <option value="" disabled>Taille</option>
-          {[1,2,3,4,5,6,7].map(s => <option key={s} value={s}>{["8","10","12","14","18","24","36"][s-1]}px</option>)}
-        </select>
-        <div className="adm-tb-sep"/>
-        <input type="color" style={{width:28,height:26,border:"1px solid rgba(212,165,116,0.2)",background:"transparent",cursor:"pointer",padding:2}} onChange={e => exec("foreColor",e.target.value)} />
-        <button className="adm-tb-btn" onClick={() => exec("removeFormat")}>✕</button>
-      </div>
-    );
-  }
-  function RichEditor({ id, value, onChange, placeholder }) {
-    const ref = React.useRef(null);
-    React.useEffect(() => { if(ref.current) ref.current.innerHTML = value||""; }, [id]);
-    return (
-      <div>
-        <RichToolbar targetRef={ref} />
-        <div ref={ref} className="adm-rich-editor" contentEditable suppressContentEditableWarning
-          onInput={() => onChange && onChange(ref.current.innerHTML)}
-          data-placeholder={placeholder||""} />
-        <style>{".adm-rich-editor:empty:before{content:attr(data-placeholder);color:rgba(185,177,163,0.3);pointer-events:none}"}</style>
-      </div>
-    );
-  }
-
-  
-  function LazyImg({ src, alt }) {
-    const ref = React.useRef(null);
-    const [loaded, setLoaded] = React.useState(false);
-    React.useEffect(() => {
-      if(!ref.current) return;
-      const obs = new IntersectionObserver(([e]) => { if(e.isIntersecting){setLoaded(true);obs.disconnect();} },{rootMargin:"200px"});
-      obs.observe(ref.current);
-      return () => obs.disconnect();
-    },[]);
-    return (
-      <div ref={ref} style={{position:"relative",aspectRatio:"4/3"}}>
-        {!loaded && <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(212,165,116,0.3)",fontFamily:"JetBrains Mono,monospace",fontSize:10}}>…</div>}
-        {loaded && <img src={src} alt={alt} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />}
-      </div>
-    );
-  }
-
-  
-  function TagInput({ tags, onChange }) {
-    const [input, setInput] = React.useState("");
-    const add = () => { const v=input.trim(); if(v&&!tags.includes(v)){onChange([...tags,v]);setInput("");} };
-    return (
-      <div>
-        <div style={{display:"flex",flexWrap:"wrap",marginBottom:8}}>
-          {tags.map(t => <span key={t} className="adm-tag">{t}<button onClick={() => onChange(tags.filter(x=>x!==t))}>×</button></span>)}
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <input className="adm-input" style={{flex:1}} placeholder="Ajouter balise…" value={input}
-            onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(e.preventDefault(),add())} />
-          <button className="adm-save-btn" onClick={add}>+</button>
-        </div>
-      </div>
-    );
-  }
-
-  
-  function VideoAdminCard({ v, i, onUpdate, onMoveUp, onMoveDown, onDelete, isFirst, isLast }) {
-    const [open, setOpen] = React.useState(false);
-    let thumbSrc = v.thumb || null;
-    if (!thumbSrc && v.url) {
-      const m = v.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([-\w]+)/);
-      if (m) thumbSrc = "https://img.youtube.com/vi/" + m[1] + "/hqdefault.jpg";
-    }
-    return (
-      <div style={{border:"1px solid rgba(212,165,116,0.15)",marginBottom:8,background:"rgba(255,255,255,0.02)"}}>
-        {}
-        <div style={{display:"flex",gap:12,alignItems:"center",padding:"12px 14px"}}>
-          <div style={{width:80,height:45,flexShrink:0,background:"rgba(255,255,255,0.05)",overflow:"hidden",border:"1px solid rgba(212,165,116,0.1)"}}>
-            {thumbSrc
-              ? <img src={thumbSrc} style={{width:"100%",height:"100%",objectFit:"cover"}} />
-              : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(212,165,116,0.3)",fontSize:14}}>▷</div>}
-          </div>
-          <div style={{flex:1,minWidth:0}}>
-            <input className="adm-input" value={v.title||""} placeholder="Titre de la vidéo"
-              onChange={e=>onUpdate(v.id,{title:e.target.value})}
-              style={{marginBottom:4,padding:"6px 10px",fontSize:13}} />
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.4)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-              {v.type==="url" ? v.url : "📁 "+v.title+(v.size?" — "+Math.round(v.size/1024/1024*10)/10+"MB":"")}
-            </div>
-          </div>
-          <button className="adm-ghost-btn" style={{padding:"6px 12px",fontSize:10}} onClick={()=>setOpen(o=>!o)}>
-            {open ? "FERMER ▲" : "DÉTAILS ▼"}
-          </button>
-          <div style={{display:"flex",flexDirection:"column",gap:3}}>
-            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isFirst?0.3:1}} onClick={onMoveUp} disabled={isFirst}>↑</button>
-            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isLast?0.3:1}} onClick={onMoveDown} disabled={isLast}>↓</button>
-          </div>
-          <button className="adm-danger-btn" style={{padding:"8px 12px"}} onClick={onDelete}>✕</button>
-        </div>
-
-        {}
-        {open && (
-          <div style={{padding:"0 14px 16px",borderTop:"1px solid rgba(212,165,116,0.1)"}}>
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",margin:"14px 0 12px"}}>— MÉTADONNÉES · affichées dans le panneau du bas</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:14}}>
-              {[["year","ANNÉE","2025"],["client","CLIENT","Studio X"],["duration","DURÉE","3:24"],["format","FORMAT","16:9 · 4K"]].map(([k,l,ph])=>(
-                <div key={k}>
-                  <label className="adm-label">{l}</label>
-                  <input className="adm-input" value={v[k]||""} placeholder={ph}
-                    style={{padding:"7px 10px",fontSize:12}}
-                    onChange={e=>onUpdate(v.id,{[k]:e.target.value})} />
-                </div>
-              ))}
-            </div>
-            <label className="adm-label">DESCRIPTION (rich text · panneau du bas)</label>
-            <VideoRichEditor id={"vdesc-"+v.id} value={v.description||""} onChange={val=>onUpdate(v.id,{description:val})} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  
-  function VideoRichEditor({ id, value, onChange }) {
-    const ref = React.useRef(null);
-    React.useEffect(() => { if(ref.current) ref.current.innerHTML = value||""; }, [id]);
-    const exec = (cmd, val) => { if(ref.current){ref.current.focus();document.execCommand(cmd,false,val||null);} };
-    return (
-      <div>
-        <div className="adm-toolbar" style={{flexWrap:"nowrap",gap:2}}>
-          <button className="adm-tb-btn" onClick={()=>exec("bold")}><b>B</b></button>
-          <button className="adm-tb-btn" onClick={()=>exec("italic")}><i>I</i></button>
-          <button className="adm-tb-btn" onClick={()=>exec("underline")}><u>U</u></button>
-          <div className="adm-tb-sep"/>
-          <button className="adm-tb-btn" onClick={()=>exec("insertUnorderedList")}>• —</button>
-          <button className="adm-tb-btn" onClick={()=>exec("removeFormat")}>✕</button>
-        </div>
-        <div ref={ref} className="adm-rich-editor" contentEditable suppressContentEditableWarning
-          style={{minHeight:70}}
-          onInput={()=>onChange && onChange(ref.current.innerHTML)}
-          data-placeholder="Description de la vidéo…"/>
-        <style>{".adm-rich-editor:empty:before{content:attr(data-placeholder);color:rgba(185,177,163,0.3);pointer-events:none}"}</style>
-      </div>
-    );
-  }
-
-  function VideoAdminSection({ data, onSave }) {
-    const cellVideos = data.cellVideos || {};   
-    
-    const [videos, setVideos] = React.useState(cellVideos.video || []);
-    const [toast, showToast] = useToast();
-    const [urlInput, setUrlInput] = React.useState("");
-    const [urlTitle, setUrlTitle] = React.useState("");
-    const [uploading, setUploading] = React.useState(false);
-    const dropRef = React.useRef(null);
-
-    const save = (vids) => {
-      const next = { ...cellVideos, video: vids };
-      onSave({ cellVideos: next });
-      
-      const liveCells = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c =>
-        c.id === "video" ? { ...c, videos: vids } : c
-      );
-      window.__LIVE_CELLS = liveCells;
-      window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c =>
-        c.id === "video" ? { ...c, videos: vids } : c
-      );
-      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+  };
+  const addUrl = () => {
+    if (!urlInput.trim()) return;
+    const v = {
+      id: Date.now(),
+      type: "url",
+      url: urlInput.trim(),
+      title: urlTitle.trim() || "Vidéo",
+      thumb: null
     };
-
-    const addUrl = () => {
-      if (!urlInput.trim()) return;
-      const v = { id: Date.now(), type:"url", url: urlInput.trim(), title: urlTitle.trim() || "Vidéo", thumb: null };
-      const next = [...videos, v];
-      setVideos(next); save(next);
-      setUrlInput(""); setUrlTitle("");
-      showToast("✓ URL ajoutée");
-    };
-
-    const handleFiles = async (files) => {
-      setUploading(true);
-      const arr = Array.from(files).filter(f => f.type.startsWith("video/"));
-      const results = [];
-      for (const f of arr) {
-        const res = await extractVideoThumb(f);
-        
-        let storageUrl = null;
-        try {
-          const uploaded = await storageUpload("videos", f, f.type);
-          if (uploaded) storageUrl = uploaded.url;
-        } catch(e) { console.warn("[Upload] Video storage failed:", e); }
-        results.push({
-          id: Date.now() + Math.random(), type:"file",
-          blobUrl: storageUrl || res.blobUrl,
-          storageUrl,
-          thumb: res.thumb,
-          title: res.name.replace(/\.[^.]+$/, ""),
-          size: res.size
-        });
-      }
-      const next = [...videos, ...results];
-      setVideos(next); save(next);
-      setUploading(false);
-      showToast("✓ " + results.length + " vidéo(s) ajoutée(s)");
-    };
-
-    const remove = (id) => { if(!confirm("Supprimer cette vidéo ?")) return; const next=videos.filter(v=>v.id!==id); setVideos(next); save(next); };
-    const moveUp = (i) => { if(i===0) return; const a=[...videos]; [a[i-1],a[i]]=[a[i],a[i-1]]; setVideos(a); save(a); };
-    const moveDown = (i) => { if(i===videos.length-1) return; const a=[...videos]; [a[i],a[i+1]]=[a[i+1],a[i]]; setVideos(a); save(a); };
-    
-
-    return (
-      <div>
-        <Toast msg={toast} />
-        <div className="adm-section-title">Vidéos</div>
-        <div className="adm-section-meta">— SLIDER · URL EXTERNE · UPLOAD LOCAL</div>
-
-        {}
-        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:20,background:"rgba(255,255,255,0.02)"}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:16}}>— AJOUTER UNE URL</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:10,marginBottom:10}}>
-            <div>
-              <label className="adm-label">TITRE</label>
-              <input className="adm-input" value={urlTitle} onChange={e=>setUrlTitle(e.target.value)} placeholder="ex: Nova — 2025" />
-            </div>
-            <div>
-              <label className="adm-label">URL (YouTube / Vimeo / lien direct)</label>
-              <input className="adm-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUrl()} placeholder="https://…" />
-            </div>
-          </div>
-          <button className="adm-save-btn" onClick={addUrl}>+ AJOUTER L'URL</button>
-        </div>
-
-        {}
-        <div ref={dropRef} className="adm-upload-zone" style={{marginBottom:28}}
-          onClick={() => document.getElementById("adm-vid-input").click()}
-          onDrop={e=>{e.preventDefault();dropRef.current.classList.remove("drag-over");handleFiles(e.dataTransfer.files);}}
-          onDragOver={e=>{e.preventDefault();dropRef.current.classList.add("drag-over");}}
-          onDragLeave={()=>dropRef.current.classList.remove("drag-over")}>
-          <input id="adm-vid-input" type="file" multiple accept="video}
-        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--bone-dim)",marginBottom:12}}>— {videos.length} VIDÉO{videos.length!==1?"S":""} · ORDRE = ORDRE DU SLIDER</div>
-        {videos.length === 0 && <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:"rgba(185,177,163,0.3)",padding:"24px 0"}}>Aucune vidéo. Ajoutez une URL ou uploadez un fichier.</div>}
-        {videos.map((v, i) => (
-          <VideoAdminCard key={v.id} v={v} i={i}
-            onUpdate={(id,patch)=>{ const next=videos.map(x=>x.id===id?{...x,...patch}:x); setVideos(next); save(next); }}
-            onMoveUp={()=>moveUp(i)} onMoveDown={()=>moveDown(i)}
-            onDelete={()=>remove(v.id)}
-            isFirst={i===0} isLast={i===videos.length-1} />
-        ))}
-        {videos.length > 0 && <div style={{marginTop:8,fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.4)"}}>La miniature YouTube s'affiche dans l'hexagone. Le lecteur s'ouvre dans le panneau du bas au clic.</div>}
-      </div>
-    );
-  }
-
-  
-  const DEFAULT_CELL_POSITIONS = [
-    [0,0],[0,-1],[1,-0.5],[-1,-0.5],[-1,0.5],[1,0.5],[0,1],[2,0],[-2,0]
-  ];
-  
-  function HexCellEditor({ cell, data, onSave }) {
-    const [tab, setTab] = React.useState("content");
-
-    const tabs = [
-      { id:"content", label:"TEXTE" },
-      ...(cell.type === "video"   ? [{ id:"videos",  label:"VIDÉOS" }] : []),
-      ...(cell.type === "graphic" ? [{ id:"photos",  label:"PHOTOS" }] : []),
-    ];
-
-    return (
-      <div style={{borderTop:"1px solid rgba(212,165,116,0.15)",background:"rgba(255,255,255,0.02)"}}>
-        {}
-        <div style={{display:"flex",gap:0,borderBottom:"1px solid rgba(212,165,116,0.12)"}}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={()=>setTab(t.id)}
-              style={{
-                padding:"8px 16px",background:"transparent",
-                border:"none",borderBottom: tab===t.id ? "2px solid var(--gold-bright)" : "2px solid transparent",
-                color: tab===t.id ? "var(--gold-bright)" : "var(--bone-dim)",
-                fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.2em",
-                cursor:"pointer",transition:"all 150ms",
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {}
-        <div style={{padding:"16px 20px"}}>
-          {tab === "content" && <HexContentEditor cell={cell} data={data} onSave={onSave} />}
-          {tab === "videos"  && <HexVideoEditor   cellId={cell.id} data={data} onSave={onSave} />}
-          {tab === "photos"  && <HexPhotoEditor   cellId={cell.id} data={data} onSave={onSave} />}
-        </div>
-      </div>
-    );
-  }
-
-  
-  function HexContentEditor({ cell, data, onSave }) {
-    const allCells = data.cells || window.PORTFOLIO_DATA.cells;
-    const cellData = allCells.find(c => c.id === cell.id) || cell;
-    const [detail, setDetail] = React.useState({...( cellData.detail || {})});
-    const [label,  setLabel]  = React.useState(cellData.label || "");
-    const [toast,  showToast] = useToast();
-
-    const save = () => {
-      const updatedCells = (data.cells || window.PORTFOLIO_DATA.cells).map(c =>
-        c.id === cell.id ? { ...c, label, detail } : c
-      );
-      onSave({ cells: updatedCells });
-      pushLiveCells(updatedCells);
-      showToast("✓ Texte sauvegardé");
-    };
-
-    return (
-      <div>
-        <Toast msg={toast}/>
-        <div className="adm-field-group">
-          <label className="adm-label">NOM AFFICHÉ (menu + hexagone)</label>
-          <input className="adm-input" value={label} onChange={e=>setLabel(e.target.value)}
-            placeholder="ex: Mes Projets Film" />
-        </div>
-        <div className="adm-field-group">
-          <label className="adm-label">TITRE PANNEAU DU BAS</label>
-          <input className="adm-input" value={detail.title||""} onChange={e=>setDetail(d=>({...d,title:e.target.value}))}
-            placeholder="ex: Sélection 2025" />
-        </div>
-        <div className="adm-field-group">
-          <label className="adm-label">DESCRIPTION (rich text)</label>
-          <VideoRichEditor id={"hce-"+cell.id} value={detail.body||""} onChange={v=>setDetail(d=>({...d,body:v}))} />
-        </div>
-        <button className="adm-save-btn" onClick={save}>SAUVEGARDER</button>
-      </div>
-    );
-  }
-
-  
-  function HexVideoEditor({ cellId, data, onSave }) {
-    const cellVideos = data.cellVideos || {};
-    const [videos, setVideos] = React.useState(cellVideos[cellId] || []);
-    const [urlInput, setUrlInput] = React.useState("");
-    const [urlTitle, setUrlTitle] = React.useState("");
-    const [uploading, setUploading] = React.useState(false);
-    const [toast, showToast] = useToast();
-    const dropRef = React.useRef(null);
-
-    const save = (vids) => {
-      const next = { ...cellVideos, [cellId]: vids };
-      onSave({ cellVideos: next });
-      const live = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c =>
-        c.id === cellId ? { ...c, videos: vids } : c
-      );
-      window.__LIVE_CELLS = live;
-      window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c =>
-        c.id === cellId ? { ...c, videos: vids } : c
-      );
-      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
-    };
-
-    const addUrl = () => {
-      if (!urlInput.trim()) return;
-      const v = { id: Date.now(), type:"url", url: urlInput.trim(), title: urlTitle.trim() || "Vidéo", thumb: null };
-      const next = [...videos, v];
-      setVideos(next); save(next);
-      setUrlInput(""); setUrlTitle("");
-      showToast("✓ URL ajoutée");
-    };
-
-    const handleFiles = async (files) => {
-      setUploading(true);
-      const arr = Array.from(files).filter(f => f.type.startsWith("video/"));
-      const results = [];
-      for (const f of arr) {
-        const res = await extractVideoThumb(f);
-        let storageUrl = null;
-        try {
-          const uploaded = await storageUpload("videos", f, f.type);
-          if (uploaded) storageUrl = uploaded.url;
-        } catch(e) {}
-        results.push({ id: Date.now()+Math.random(), type:"file", blobUrl: storageUrl||res.blobUrl, storageUrl, thumb: res.thumb, title: res.name.replace(/\.[^.]+$/,""), size: res.size });
-      }
-      const next = [...videos, ...results];
-      setVideos(next); save(next);
-      setUploading(false);
-      showToast("✓ " + results.length + " vidéo(s) ajoutée(s)");
-    };
-
-    const remove = (id) => { if(!confirm("Supprimer ?")) return; const next=videos.filter(v=>v.id!==id); setVideos(next); save(next); };
-    const moveUp = (i) => { if(i===0)return; const a=[...videos];[a[i-1],a[i]]=[a[i],a[i-1]];setVideos(a);save(a); };
-    const moveDown = (i) => { if(i===videos.length-1)return; const a=[...videos];[a[i],a[i+1]]=[a[i+1],a[i]];setVideos(a);save(a); };
-    const updTitle = (id,t) => { const next=videos.map(v=>v.id===id?{...v,title:t}:v); setVideos(next); save(next); };
-
-    return (
-      <div>
-        <Toast msg={toast}/>
-        {}
-        <div style={{padding:"14px 16px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:14,background:"rgba(255,255,255,0.02)"}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— AJOUTER UNE URL</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8,marginBottom:8}}>
-            <div><label className="adm-label">TITRE</label><input className="adm-input" value={urlTitle} onChange={e=>setUrlTitle(e.target.value)} placeholder="Titre"/></div>
-            <div><label className="adm-label">URL YouTube / Vimeo</label><input className="adm-input" value={urlInput} onChange={e=>setUrlInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUrl()} placeholder="https://…"/></div>
-          </div>
-          <button className="adm-save-btn" onClick={addUrl}>+ AJOUTER</button>
-        </div>
-        {}
-        <div ref={dropRef} className="adm-upload-zone" style={{marginBottom:16,padding:"20px"}}
-          onClick={()=>document.getElementById("hvid-"+cellId).click()}
-          onDrop={e=>{e.preventDefault();dropRef.current.classList.remove("drag-over");handleFiles(e.dataTransfer.files);}}
-          onDragOver={e=>{e.preventDefault();dropRef.current.classList.add("drag-over");}}
-          onDragLeave={()=>dropRef.current.classList.remove("drag-over")}>
-          <input id={"hvid-"+cellId} type="file" multiple accept="video}
-        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.25em",color:"var(--bone-dim)",marginBottom:8}}>{videos.length} VIDÉO{videos.length!==1?"S":""}</div>
-        {videos.map((v,i) => (
-          <VideoAdminCard key={v.id} v={v} i={i}
-            onUpdate={(id,patch)=>{const next=videos.map(x=>x.id===id?{...x,...patch}:x);setVideos(next);save(next);}}
-            onMoveUp={()=>moveUp(i)} onMoveDown={()=>moveDown(i)} onDelete={()=>remove(v.id)}
-            isFirst={i===0} isLast={i===videos.length-1}/>
-        ))}
-      </div>
-    );
-  }
-
-  
-  function HexPhotoEditor({ cellId, data, onSave }) {
-    const cellPhotos = data.cellPhotos || {};
-    const [photos, setPhotos] = React.useState(cellPhotos[cellId] || []);
-    const [uploading, setUploading] = React.useState(false);
-    const [progress, setProgress] = React.useState(0);
-    const [toast, showToast] = useToast();
-    const dropRef = React.useRef(null);
-
-    const save = (ph) => {
-      const next = { ...cellPhotos, [cellId]: ph };
-      onSave({ cellPhotos: next });
-      const live = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c =>
-        c.id === cellId ? { ...c, photos: ph } : c
-      );
-      window.__LIVE_CELLS = live;
-      window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c =>
-        c.id === cellId ? { ...c, photos: ph } : c
-      );
-      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
-    };
-
-    const handleFiles = async (files) => {
-      setUploading(true);
-      const results = [];
-      const arr = Array.from(files).filter(f => f.type.startsWith("image/"));
-      for(let i=0;i<arr.length;i++){
-        setProgress(Math.round((i/arr.length)*90));
-        const c = await compressImage(arr[i]);
-        let storageUrl = null;
-        try {
-          const compressedFile = dataUrlToFile(c.dataUrl, arr[i].name.replace(/\.[^.]+$/,".jpg"));
-          const uploaded = await storageUpload("photos", compressedFile, "image/jpeg");
-          if (uploaded) storageUrl = uploaded.url;
-        } catch(e) {}
-        results.push({
-          id: Date.now()+i,
-          dataUrl: c.dataUrl,
-          storageUrl,
-          displayUrl: storageUrl || c.dataUrl,
-          name: arr[i].name, w:c.w, h:c.h,
-          origSize:Math.round(c.origSize/1024),
-          newSize:Math.round(c.newSize/1024),
-          title:"", description:"",
-          uploadedAt: new Date().toISOString()
-        });
-      }
-      setProgress(100);
-      const next = [...results,...photos];
-      setPhotos(next); save(next);
-      setUploading(false); setProgress(0);
-      showToast("✓ "+results.length+" photo(s) ajoutée(s)");
-    };
-
-    const moveUp=(i)=>{if(i===0)return;const a=[...photos];[a[i-1],a[i]]=[a[i],a[i-1]];setPhotos(a);save(a);};
-    const moveDown=(i)=>{if(i===photos.length-1)return;const a=[...photos];[a[i],a[i+1]]=[a[i+1],a[i]];setPhotos(a);save(a);};
-    const del=(id)=>{if(!confirm("Supprimer ?"))return;const n=photos.filter(p=>p.id!==id);setPhotos(n);save(n);};
-    const upd=(id,patch)=>{const n=photos.map(p=>p.id===id?{...p,...patch}:p);setPhotos(n);save(n);};
-
-    return (
-      <div>
-        <Toast msg={toast}/>
-        <div ref={dropRef} className="adm-upload-zone" style={{marginBottom:14,padding:"20px"}}
-          onClick={()=>document.getElementById("hpho-"+cellId).click()}
-          onDrop={e=>{e.preventDefault();dropRef.current.classList.remove("drag-over");handleFiles(e.dataTransfer.files);}}
-          onDragOver={e=>{e.preventDefault();dropRef.current.classList.add("drag-over");}}
-          onDragLeave={()=>dropRef.current.classList.remove("drag-over")}>
-          <input id={"hpho-"+cellId} type="file" multiple accept="image}
-        {showNew && (
-          <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.25)",background:"rgba(212,165,116,0.05)",marginBottom:20}}>
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:16}}>— NOUVEL HEXAGONE</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14}}>
-              <div>
-                <label className="adm-label">NOM</label>
-                <input className="adm-input" value={newCell.label} onChange={e=>setNewCell(n=>({...n,label:e.target.value}))} placeholder="ex: Services" />
-              </div>
-              <div>
-                <label className="adm-label">TYPE</label>
-                <select className="adm-input" value={newCell.type} onChange={e=>setNewCell(n=>({...n,type:e.target.value}))}>
-                  {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="adm-label">STATUT INITIAL</label>
-                <select className="adm-input" value={newCell.status} onChange={e=>setNewCell(n=>({...n,status:e.target.value}))}>
-                  <option value="live">Publié (live)</option>
-                  <option value="draft">Brouillon</option>
-                </select>
-              </div>
-            </div>
-            <button className="adm-save-btn" onClick={addCell}>CRÉER L'HEXAGONE</button>
-          </div>
-        )}
-
-        {}
-        {cells.map((c, i) => {
-          const status = c.hidden ? "hidden" : (c.status || "live");
-          return (
-            <div key={c.id} className={"hex-row" + (c.hidden?" hidden-cell":"") + (status==="draft"?" draft-cell":"")}>
-              {}
-              <div style={{display:"flex",flexDirection:"column",gap:3,flexShrink:0}}>
-                <button className="adm-ghost-btn" style={{padding:"2px 7px",fontSize:11}} onClick={()=>moveUp(i)}>↑</button>
-                <button className="adm-ghost-btn" style={{padding:"2px 7px",fontSize:11}} onClick={()=>moveDown(i)}>↓</button>
-              </div>
-
-              {}
-              <div style={{width:18,height:20,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:c.hidden?"rgba(185,177,163,0.15)":"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
-
-              {}
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:c.hidden?"var(--bone-dim)":"var(--bone)",fontWeight:500}}>{c.label}</div>
-                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,color:"rgba(185,177,163,0.4)",letterSpacing:"0.15em"}}>{c.num} · {c.type}{c.isCustom?" · custom":""}</div>
-              </div>
-
-              {}
-              <span className={"hex-badge badge-"+status}>{status==="live"?"● LIVE":status==="draft"?"◌ DRAFT":"— MASQUÉ"}</span>
-
-              {}
-              <select className="adm-input" value={status} onChange={e=>setStatus(c.id,e.target.value)}
-                style={{width:110,padding:"6px 8px",fontSize:11}}>
-                <option value="live">● Live</option>
-                <option value="draft">◌ Brouillon</option>
-                <option value="hidden">— Masquer</option>
-              </select>
-
-              {}
-              <button className="adm-ghost-btn" style={{padding:"6px 12px",fontSize:9,flexShrink:0}}
-                onClick={()=>toggleExpand(c.id)}>
-                {expandedCellId===c.id ? "FERMER ▲" : "ÉDITER ▼"}
-              </button>
-
-              {}
-              {c.isCustom && <button className="adm-danger-btn" style={{padding:"6px 10px",flexShrink:0}} onClick={()=>deleteCell(c.id)}>✕</button>}
-            </div>
-
-            {}
-            {expandedCellId === c.id && (
-              <HexCellEditor cell={c} data={data} onSave={onSave} />
-            )}
-          );
-        })}
-
-        <div style={{marginTop:16,fontFamily:"Inter,sans-serif",fontSize:12,color:"rgba(185,177,163,0.35)",lineHeight:1.6}}>
-          Les hexagones en brouillon sont masqués du portfolio public mais restent éditables ici.<br/>
-          Les hexagones originaux ne peuvent pas être supprimés — uniquement masqués.
-        </div>
-      </div>
-    );
-  }
-
-  
-  
-  function SoundsSection({ data, onSave }) {
-    const [custom, setCustom] = React.useState(
-      (data.sounds && data.sounds.custom) || {}
-    );
-    const [uploading, setUploading] = React.useState({});
-    const [toast, showToast] = useToast();
-
-    const MAX_SIZE = 500 * 1024; 
-
-    const SOUND_SLOTS = [
-      { key: "hover", label: "SURVOL", desc: "Son joué quand la souris passe sur un hexagone" },
-      { key: "click", label: "CLIC",   desc: "Son joué quand on clique sur un hexagone" },
-      { key: "lock",  label: "LOCK",   desc: "Son joué pour les hexagones verrouillés" },
-    ];
-
-    const handleUpload = async (key, file) => {
-      if (!file) return;
-      
-      if (file.size > MAX_SIZE) {
-        showToast("⚠ Fichier trop lourd — maximum 500KB. Utilisez un son court (< 3s).");
-        return;
-      }
-      
-      const allowed = ["audio/mpeg","audio/mp3","audio/ogg","audio/wav","audio/webm"];
-      if (!allowed.includes(file.type) && !file.name.match(/\.(mp3|ogg|wav|webm)$/i)) {
-        showToast("⚠ Format non supporté. Utilisez MP3, OGG, WAV ou WEBM.");
-        return;
-      }
-      setUploading(u => ({...u, [key]: true}));
+    const next = [...videos, v];
+    setVideos(next);
+    save(next);
+    setUrlInput("");
+    setUrlTitle("");
+    showToast("✓ URL ajoutée");
+  };
+  const handleFiles = async files => {
+    setUploading(true);
+    const arr = Array.from(files).filter(f => f.type.startsWith("video/"));
+    const results = [];
+    for (const f of arr) {
+      const res = await extractVideoThumb(f);
+      let storageUrl = null;
       try {
-        
-        const uploaded = await storageUpload("sounds", file, file.type);
-        if (!uploaded) throw new Error("Upload échoué");
-        const next = { ...custom, [key]: uploaded.url };
-        setCustom(next);
-        
-        if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
-        window.PORTFOLIO_DATA.sounds.custom[key] = uploaded.url;
-        
-        const soundsData = { ...(data.sounds || {}), custom: next };
-        onSave({ sounds: soundsData });
-        showToast("✓ Son « " + key + " » uploadé → Supabase");
-      } catch(e) {
-        showToast("⚠ Erreur : " + e.message);
+        const uploaded = await storageUpload("videos", f, f.type);
+        if (uploaded) storageUrl = uploaded.url;
+      } catch (e) {
+        console.warn("[Upload] Video storage failed:", e);
       }
-      setUploading(u => ({...u, [key]: false}));
+      results.push({
+        id: Date.now() + Math.random(),
+        type: "file",
+        blobUrl: storageUrl || res.blobUrl,
+        storageUrl,
+        thumb: res.thumb,
+        title: res.name.replace(/\.[^.]+$/, ""),
+        size: res.size
+      });
+    }
+    const next = [...videos, ...results];
+    setVideos(next);
+    save(next);
+    setUploading(false);
+    showToast("✓ " + results.length + " vidéo(s) ajoutée(s)");
+  };
+  const remove = id => {
+    if (!confirm("Supprimer cette vidéo ?")) return;
+    const next = videos.filter(v => v.id !== id);
+    setVideos(next);
+    save(next);
+  };
+  const moveUp = i => {
+    if (i === 0) return;
+    const a = [...videos];
+    [a[i - 1], a[i]] = [a[i], a[i - 1]];
+    setVideos(a);
+    save(a);
+  };
+  const moveDown = i => {
+    if (i === videos.length - 1) return;
+    const a = [...videos];
+    [a[i], a[i + 1]] = [a[i + 1], a[i]];
+    setVideos(a);
+    save(a);
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Vid\xE9os"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 SLIDER \xB7 URL EXTERNE \xB7 UPLOAD LOCAL"), React.createElement("div", {
+    style: {
+      padding: "20px 22px",
+      border: "1px solid rgba(212,165,116,0.15)",
+      marginBottom: 20,
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 16
+    }
+  }, "\u2014 AJOUTER UNE URL"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 2fr",
+      gap: 10,
+      marginBottom: 10
+    }
+  }, React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "TITRE"), React.createElement("input", {
+    className: "adm-input",
+    value: urlTitle,
+    onChange: e => setUrlTitle(e.target.value),
+    placeholder: "ex: Nova \u2014 2025"
+  })), React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "URL (YouTube / Vimeo / lien direct)"), React.createElement("input", {
+    className: "adm-input",
+    value: urlInput,
+    onChange: e => setUrlInput(e.target.value),
+    onKeyDown: e => e.key === "Enter" && addUrl(),
+    placeholder: "https://\u2026"
+  }))), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: addUrl
+  }, "+ AJOUTER L'URL")), React.createElement("div", {
+    ref: dropRef,
+    className: "adm-upload-zone",
+    style: {
+      marginBottom: 28
+    },
+    onClick: () => document.getElementById("adm-vid-input").click(),
+    onDrop: e => {
+      e.preventDefault();
+      dropRef.current.classList.remove("drag-over");
+      handleFiles(e.dataTransfer.files);
+    },
+    onDragOver: e => {
+      e.preventDefault();
+      dropRef.current.classList.add("drag-over");
+    },
+    onDragLeave: () => dropRef.current.classList.remove("drag-over")
+  }, React.createElement("input", {
+    id: "adm-vid-input",
+    type: "file",
+    multiple: true,
+    accept: "video/*",
+    style: {
+      display: "none"
+    },
+    onChange: e => handleFiles(e.target.files)
+  }), React.createElement("div", {
+    style: {
+      fontSize: 24,
+      marginBottom: 8,
+      color: "rgba(212,165,116,0.4)"
+    }
+  }, "\u25B7"), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 11,
+      letterSpacing: "0.25em",
+      color: "var(--bone-dim)"
+    }
+  }, "D\xC9POSER DES VID\xC9OS ICI"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "rgba(185,177,163,0.4)",
+      marginTop: 6
+    }
+  }, "miniature extraite auto \u2014 lecture lazy"), uploading && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.2em",
+      color: "var(--gold)"
+    }
+  }, "TRAITEMENT\u2026")), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--bone-dim)",
+      marginBottom: 12
+    }
+  }, "\u2014 ", videos.length, " VID\xC9O", videos.length !== 1 ? "S" : "", " \xB7 ORDRE = ORDRE DU SLIDER"), videos.length === 0 && React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 13,
+      color: "rgba(185,177,163,0.3)",
+      padding: "24px 0"
+    }
+  }, "Aucune vid\xE9o. Ajoutez une URL ou uploadez un fichier."), videos.map((v, i) => React.createElement(VideoAdminCard, {
+    key: v.id,
+    v: v,
+    i: i,
+    onUpdate: (id, patch) => {
+      const next = videos.map(x => x.id === id ? {
+        ...x,
+        ...patch
+      } : x);
+      setVideos(next);
+      save(next);
+    },
+    onMoveUp: () => moveUp(i),
+    onMoveDown: () => moveDown(i),
+    onDelete: () => remove(v.id),
+    isFirst: i === 0,
+    isLast: i === videos.length - 1
+  })), videos.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "rgba(185,177,163,0.4)"
+    }
+  }, "La miniature YouTube s'affiche dans l'hexagone. Le lecteur s'ouvre dans le panneau du bas au clic."));
+}
+const DEFAULT_CELL_POSITIONS = [[0, 0], [0, -1], [1, -0.5], [-1, -0.5], [-1, 0.5], [1, 0.5], [0, 1], [2, 0], [-2, 0]];
+function HexCellEditor({
+  cell,
+  data,
+  onSave
+}) {
+  const [tab, setTab] = React.useState("content");
+  const tabs = [{
+    id: "content",
+    label: "TEXTE"
+  }, ...(cell.type === "video" ? [{
+    id: "videos",
+    label: "VIDÉOS"
+  }] : []), ...(cell.type === "graphic" ? [{
+    id: "photos",
+    label: "PHOTOS"
+  }] : [])];
+  return React.createElement("div", {
+    style: {
+      borderTop: "1px solid rgba(212,165,116,0.15)",
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 0,
+      borderBottom: "1px solid rgba(212,165,116,0.12)"
+    }
+  }, tabs.map(t => React.createElement("button", {
+    key: t.id,
+    onClick: () => setTab(t.id),
+    style: {
+      padding: "8px 16px",
+      background: "transparent",
+      border: "none",
+      borderBottom: tab === t.id ? "2px solid var(--gold-bright)" : "2px solid transparent",
+      color: tab === t.id ? "var(--gold-bright)" : "var(--bone-dim)",
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.2em",
+      cursor: "pointer",
+      transition: "all 150ms"
+    }
+  }, t.label))), React.createElement("div", {
+    style: {
+      padding: "16px 20px"
+    }
+  }, tab === "content" && React.createElement(HexContentEditor, {
+    cell: cell,
+    data: data,
+    onSave: onSave
+  }), tab === "videos" && React.createElement(HexVideoEditor, {
+    cellId: cell.id,
+    data: data,
+    onSave: onSave
+  }), tab === "photos" && React.createElement(HexPhotoEditor, {
+    cellId: cell.id,
+    data: data,
+    onSave: onSave
+  })));
+}
+function HexContentEditor({
+  cell,
+  data,
+  onSave
+}) {
+  const allCells = data.cells || window.PORTFOLIO_DATA.cells;
+  const cellData = allCells.find(c => c.id === cell.id) || cell;
+  const [detail, setDetail] = React.useState({
+    ...(cellData.detail || {})
+  });
+  const [label, setLabel] = React.useState(cellData.label || "");
+  const [toast, showToast] = useToast();
+  const save = () => {
+    const updatedCells = (data.cells || window.PORTFOLIO_DATA.cells).map(c => c.id === cell.id ? {
+      ...c,
+      label,
+      detail
+    } : c);
+    onSave({
+      cells: updatedCells
+    });
+    pushLiveCells(updatedCells);
+    showToast("✓ Texte sauvegardé");
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "NOM AFFICH\xC9 (menu + hexagone)"), React.createElement("input", {
+    className: "adm-input",
+    value: label,
+    onChange: e => setLabel(e.target.value),
+    placeholder: "ex: Mes Projets Film"
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "TITRE PANNEAU DU BAS"), React.createElement("input", {
+    className: "adm-input",
+    value: detail.title || "",
+    onChange: e => setDetail(d => ({
+      ...d,
+      title: e.target.value
+    })),
+    placeholder: "ex: S\xE9lection 2025"
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "DESCRIPTION (rich text)"), React.createElement(VideoRichEditor, {
+    id: "hce-" + cell.id,
+    value: detail.body || "",
+    onChange: v => setDetail(d => ({
+      ...d,
+      body: v
+    }))
+  })), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: save
+  }, "SAUVEGARDER"));
+}
+function HexVideoEditor({
+  cellId,
+  data,
+  onSave
+}) {
+  const cellVideos = data.cellVideos || {};
+  const [videos, setVideos] = React.useState(cellVideos[cellId] || []);
+  const [urlInput, setUrlInput] = React.useState("");
+  const [urlTitle, setUrlTitle] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+  const [toast, showToast] = useToast();
+  const dropRef = React.useRef(null);
+  const save = vids => {
+    const next = {
+      ...cellVideos,
+      [cellId]: vids
     };
-
-    const removeSound = (key) => {
-      const next = { ...custom };
-      delete next[key];
+    onSave({
+      cellVideos: next
+    });
+    const live = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c => c.id === cellId ? {
+      ...c,
+      videos: vids
+    } : c);
+    window.__LIVE_CELLS = live;
+    window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c => c.id === cellId ? {
+      ...c,
+      videos: vids
+    } : c);
+    window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+  };
+  const addUrl = () => {
+    if (!urlInput.trim()) return;
+    const v = {
+      id: Date.now(),
+      type: "url",
+      url: urlInput.trim(),
+      title: urlTitle.trim() || "Vidéo",
+      thumb: null
+    };
+    const next = [...videos, v];
+    setVideos(next);
+    save(next);
+    setUrlInput("");
+    setUrlTitle("");
+    showToast("✓ URL ajoutée");
+  };
+  const handleFiles = async files => {
+    setUploading(true);
+    const arr = Array.from(files).filter(f => f.type.startsWith("video/"));
+    const results = [];
+    for (const f of arr) {
+      const res = await extractVideoThumb(f);
+      let storageUrl = null;
+      try {
+        const uploaded = await storageUpload("videos", f, f.type);
+        if (uploaded) storageUrl = uploaded.url;
+      } catch (e) {}
+      results.push({
+        id: Date.now() + Math.random(),
+        type: "file",
+        blobUrl: storageUrl || res.blobUrl,
+        storageUrl,
+        thumb: res.thumb,
+        title: res.name.replace(/\.[^.]+$/, ""),
+        size: res.size
+      });
+    }
+    const next = [...videos, ...results];
+    setVideos(next);
+    save(next);
+    setUploading(false);
+    showToast("✓ " + results.length + " vidéo(s) ajoutée(s)");
+  };
+  const remove = id => {
+    if (!confirm("Supprimer ?")) return;
+    const next = videos.filter(v => v.id !== id);
+    setVideos(next);
+    save(next);
+  };
+  const moveUp = i => {
+    if (i === 0) return;
+    const a = [...videos];
+    [a[i - 1], a[i]] = [a[i], a[i - 1]];
+    setVideos(a);
+    save(a);
+  };
+  const moveDown = i => {
+    if (i === videos.length - 1) return;
+    const a = [...videos];
+    [a[i], a[i + 1]] = [a[i + 1], a[i]];
+    setVideos(a);
+    save(a);
+  };
+  const updTitle = (id, t) => {
+    const next = videos.map(v => v.id === id ? {
+      ...v,
+      title: t
+    } : v);
+    setVideos(next);
+    save(next);
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    style: {
+      padding: "14px 16px",
+      border: "1px solid rgba(212,165,116,0.15)",
+      marginBottom: 14,
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 AJOUTER UNE URL"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 2fr",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "TITRE"), React.createElement("input", {
+    className: "adm-input",
+    value: urlTitle,
+    onChange: e => setUrlTitle(e.target.value),
+    placeholder: "Titre"
+  })), React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "URL YouTube / Vimeo"), React.createElement("input", {
+    className: "adm-input",
+    value: urlInput,
+    onChange: e => setUrlInput(e.target.value),
+    onKeyDown: e => e.key === "Enter" && addUrl(),
+    placeholder: "https://\u2026"
+  }))), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: addUrl
+  }, "+ AJOUTER")), React.createElement("div", {
+    ref: dropRef,
+    className: "adm-upload-zone",
+    style: {
+      marginBottom: 16,
+      padding: "20px"
+    },
+    onClick: () => document.getElementById("hvid-" + cellId).click(),
+    onDrop: e => {
+      e.preventDefault();
+      dropRef.current.classList.remove("drag-over");
+      handleFiles(e.dataTransfer.files);
+    },
+    onDragOver: e => {
+      e.preventDefault();
+      dropRef.current.classList.add("drag-over");
+    },
+    onDragLeave: () => dropRef.current.classList.remove("drag-over")
+  }, React.createElement("input", {
+    id: "hvid-" + cellId,
+    type: "file",
+    multiple: true,
+    accept: "video/*",
+    style: {
+      display: "none"
+    },
+    onChange: e => handleFiles(e.target.files)
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10,
+      letterSpacing: "0.2em",
+      color: "var(--bone-dim)"
+    }
+  }, "\u25B7 D\xC9POSER VID\xC9OS ", uploading ? "— UPLOAD…" : "")), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.25em",
+      color: "var(--bone-dim)",
+      marginBottom: 8
+    }
+  }, videos.length, " VID\xC9O", videos.length !== 1 ? "S" : ""), videos.map((v, i) => React.createElement(VideoAdminCard, {
+    key: v.id,
+    v: v,
+    i: i,
+    onUpdate: (id, patch) => {
+      const next = videos.map(x => x.id === id ? {
+        ...x,
+        ...patch
+      } : x);
+      setVideos(next);
+      save(next);
+    },
+    onMoveUp: () => moveUp(i),
+    onMoveDown: () => moveDown(i),
+    onDelete: () => remove(v.id),
+    isFirst: i === 0,
+    isLast: i === videos.length - 1
+  })));
+}
+function HexPhotoEditor({
+  cellId,
+  data,
+  onSave
+}) {
+  const cellPhotos = data.cellPhotos || {};
+  const [photos, setPhotos] = React.useState(cellPhotos[cellId] || []);
+  const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [toast, showToast] = useToast();
+  const dropRef = React.useRef(null);
+  const save = ph => {
+    const next = {
+      ...cellPhotos,
+      [cellId]: ph
+    };
+    onSave({
+      cellPhotos: next
+    });
+    const live = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c => c.id === cellId ? {
+      ...c,
+      photos: ph
+    } : c);
+    window.__LIVE_CELLS = live;
+    window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c => c.id === cellId ? {
+      ...c,
+      photos: ph
+    } : c);
+    window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+  };
+  const handleFiles = async files => {
+    setUploading(true);
+    const results = [];
+    const arr = Array.from(files).filter(f => f.type.startsWith("image/"));
+    for (let i = 0; i < arr.length; i++) {
+      setProgress(Math.round(i / arr.length * 90));
+      const c = await compressImage(arr[i]);
+      let storageUrl = null;
+      try {
+        const compressedFile = dataUrlToFile(c.dataUrl, arr[i].name.replace(/\.[^.]+$/, ".jpg"));
+        const uploaded = await storageUpload("photos", compressedFile, "image/jpeg");
+        if (uploaded) storageUrl = uploaded.url;
+      } catch (e) {}
+      results.push({
+        id: Date.now() + i,
+        dataUrl: c.dataUrl,
+        storageUrl,
+        displayUrl: storageUrl || c.dataUrl,
+        name: arr[i].name,
+        w: c.w,
+        h: c.h,
+        origSize: Math.round(c.origSize / 1024),
+        newSize: Math.round(c.newSize / 1024),
+        title: "",
+        description: "",
+        uploadedAt: new Date().toISOString()
+      });
+    }
+    setProgress(100);
+    const next = [...results, ...photos];
+    setPhotos(next);
+    save(next);
+    setUploading(false);
+    setProgress(0);
+    showToast("✓ " + results.length + " photo(s) ajoutée(s)");
+  };
+  const moveUp = i => {
+    if (i === 0) return;
+    const a = [...photos];
+    [a[i - 1], a[i]] = [a[i], a[i - 1]];
+    setPhotos(a);
+    save(a);
+  };
+  const moveDown = i => {
+    if (i === photos.length - 1) return;
+    const a = [...photos];
+    [a[i], a[i + 1]] = [a[i + 1], a[i]];
+    setPhotos(a);
+    save(a);
+  };
+  const del = id => {
+    if (!confirm("Supprimer ?")) return;
+    const n = photos.filter(p => p.id !== id);
+    setPhotos(n);
+    save(n);
+  };
+  const upd = (id, patch) => {
+    const n = photos.map(p => p.id === id ? {
+      ...p,
+      ...patch
+    } : p);
+    setPhotos(n);
+    save(n);
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    ref: dropRef,
+    className: "adm-upload-zone",
+    style: {
+      marginBottom: 14,
+      padding: "20px"
+    },
+    onClick: () => document.getElementById("hpho-" + cellId).click(),
+    onDrop: e => {
+      e.preventDefault();
+      dropRef.current.classList.remove("drag-over");
+      handleFiles(e.dataTransfer.files);
+    },
+    onDragOver: e => {
+      e.preventDefault();
+      dropRef.current.classList.add("drag-over");
+    },
+    onDragLeave: () => dropRef.current.classList.remove("drag-over")
+  }, React.createElement("input", {
+    id: "hpho-" + cellId,
+    type: "file",
+    multiple: true,
+    accept: "image/*",
+    style: {
+      display: "none"
+    },
+    onChange: e => handleFiles(e.target.files)
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10,
+      letterSpacing: "0.2em",
+      color: "var(--bone-dim)"
+    }
+  }, "\u25C8 D\xC9POSER PHOTOS \u2014 JPEG 82%"), uploading && React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, React.createElement("div", {
+    className: "adm-progress-bar"
+  }, React.createElement("div", {
+    className: "adm-progress-fill",
+    style: {
+      width: progress + "%"
+    }
+  })))), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.25em",
+      color: "var(--bone-dim)",
+      marginBottom: 8
+    }
+  }, photos.length, " CR\xC9ATION", photos.length !== 1 ? "S" : "", " \xB7 ", Math.min(photos.length, 6), " VISIBLE", Math.min(photos.length, 6) !== 1 ? "S" : "", " DANS L'HEXAGONE"), photos.map((p, i) => React.createElement(PhotoAdminCard, {
+    key: p.id,
+    p: p,
+    i: i,
+    onUpdate: upd,
+    onMoveUp: () => moveUp(i),
+    onMoveDown: () => moveDown(i),
+    onDelete: () => del(p.id),
+    isFirst: i === 0,
+    isLast: i === photos.length - 1
+  })), photos.length > 6 && React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontFamily: "Inter,sans-serif",
+      fontSize: 11,
+      color: "rgba(185,177,163,0.35)"
+    }
+  }, "Seules les 6 premi\xE8res s'affichent dans l'hexagone. R\xE9ordonnez avec \u2191\u2193."));
+}
+function HexManagerSection({
+  data,
+  onSave
+}) {
+  const getInitialCells = () => {
+    const supa = window.__supaData;
+    if (supa && supa.cells && supa.cells.length) return supa.cells.map(c => ({
+      ...c
+    }));
+    if (data.cells && data.cells.length) return data.cells.map(c => ({
+      ...c
+    }));
+    return window.PORTFOLIO_DATA.cells.map(c => ({
+      ...c
+    }));
+  };
+  const [cells, setCells] = React.useState(getInitialCells);
+  const [toast, showToast] = useToast();
+  const [showNew, setShowNew] = React.useState(false);
+  const [newCell, setNewCell] = React.useState({
+    label: "",
+    type: "generic",
+    status: "draft"
+  });
+  const [expandedCellId, setExpandedCellId] = React.useState(null);
+  const toggleExpand = id => setExpandedCellId(prev => prev === id ? null : id);
+  const save = c => {
+    setCells(c);
+    onSave({
+      cells: c
+    });
+    pushLiveCells(c);
+  };
+  const toggle = (id, field) => {
+    const next = cells.map(c => c.id === id ? {
+      ...c,
+      [field]: !c[field]
+    } : c);
+    save(next);
+    showToast("✓ Mis à jour");
+  };
+  const setStatus = (id, status) => {
+    const next = cells.map(c => c.id === id ? {
+      ...c,
+      status,
+      hidden: status === "hidden"
+    } : c);
+    save(next);
+    const labels = {
+      "live": "● Live",
+      "draft": "◌ Brouillon",
+      "hidden": "— Masqué"
+    };
+    showToast("✓ Statut mis à jour : " + (labels[status] || status));
+  };
+  const moveUp = i => {
+    if (i === 0) return;
+    const a = [...cells];
+    [a[i - 1], a[i]] = [a[i], a[i - 1]];
+    save(a);
+  };
+  const moveDown = i => {
+    if (i === cells.length - 1) return;
+    const a = [...cells];
+    [a[i], a[i + 1]] = [a[i + 1], a[i]];
+    save(a);
+  };
+  const addCell = () => {
+    if (!newCell.label.trim()) {
+      showToast("⚠ Donnez un nom à l'hexagone");
+      return;
+    }
+    const id = "custom_" + Date.now();
+    const num = String(cells.length + 1).padStart(2, "0");
+    const posIdx = cells.length % DEFAULT_CELL_POSITIONS.length;
+    const [col, row] = DEFAULT_CELL_POSITIONS[posIdx];
+    const originalType = newCell.type || "generic";
+    const template = window.PORTFOLIO_DATA.cells.find(c => c.type === originalType) || window.PORTFOLIO_DATA.cells.find(c => c.type === "generic") || window.PORTFOLIO_DATA.cells[0];
+    const c = {
+      id,
+      col,
+      row,
+      num,
+      label: newCell.label.trim(),
+      type: originalType,
+      status: newCell.status || "draft",
+      hidden: newCell.status === "hidden",
+      content: template ? {
+        ...template.content,
+        title: newCell.label.trim(),
+        titleAccent: "",
+        sub: template.content?.sub !== undefined ? "" : undefined,
+        items: Array.isArray(template.content?.items) ? [] : undefined
+      } : {
+        title: newCell.label.trim(),
+        titleAccent: ""
+      },
+      detail: {
+        title: newCell.label.trim(),
+        body: ""
+      },
+      videos: originalType === "video" ? [] : undefined,
+      photos: originalType === "graphic" ? [] : undefined,
+      isCustom: true
+    };
+    Object.keys(c).forEach(k => c[k] === undefined && delete c[k]);
+    if (!c.content) c.content = {
+      title: newCell.label.trim(),
+      titleAccent: ""
+    };
+    const next = [...cells, c];
+    save(next);
+    setShowNew(false);
+    setNewCell({
+      label: "",
+      type: "generic",
+      status: "draft"
+    });
+    showToast("✓ Hexagone « " + c.label + " » créé — structure " + originalType + " copiée");
+  };
+  const deleteCell = id => {
+    const c = cells.find(x => x.id === id);
+    if (!c.isCustom) {
+      showToast("⚠ Impossible de supprimer un hexagone original — masquez-le");
+      return;
+    }
+    if (!confirm("Supprimer définitivement « " + c.label + " » ?")) return;
+    save(cells.filter(x => x.id !== id));
+    showToast("✓ Supprimé");
+  };
+  const TYPES = ["intro", "about", "video", "graphic", "cv", "contact", "process", "archive", "selected", "generic"];
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Hexagones"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 CR\xC9ER \xB7 MASQUER \xB7 R\xC9ACTIVER \xB7 ORDONNER"), React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--bone-dim)"
+    }
+  }, cells.filter(c => !c.hidden).length, " ACTIFS \xB7 ", cells.filter(c => c.hidden).length, " MASQU\xC9S"), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: () => setShowNew(s => !s)
+  }, showNew ? "ANNULER" : "+ NOUVEL HEXAGONE")), showNew && React.createElement("div", {
+    style: {
+      padding: "20px 22px",
+      border: "1px solid rgba(212,165,116,0.25)",
+      background: "rgba(212,165,116,0.05)",
+      marginBottom: 20
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 16
+    }
+  }, "\u2014 NOUVEL HEXAGONE"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 12,
+      marginBottom: 14
+    }
+  }, React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "NOM"), React.createElement("input", {
+    className: "adm-input",
+    value: newCell.label,
+    onChange: e => setNewCell(n => ({
+      ...n,
+      label: e.target.value
+    })),
+    placeholder: "ex: Services"
+  })), React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "TYPE"), React.createElement("select", {
+    className: "adm-input",
+    value: newCell.type,
+    onChange: e => setNewCell(n => ({
+      ...n,
+      type: e.target.value
+    }))
+  }, TYPES.map(t => React.createElement("option", {
+    key: t,
+    value: t
+  }, t)))), React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "STATUT INITIAL"), React.createElement("select", {
+    className: "adm-input",
+    value: newCell.status,
+    onChange: e => setNewCell(n => ({
+      ...n,
+      status: e.target.value
+    }))
+  }, React.createElement("option", {
+    value: "live"
+  }, "Publi\xE9 (live)"), React.createElement("option", {
+    value: "draft"
+  }, "Brouillon")))), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: addCell
+  }, "CR\xC9ER L'HEXAGONE")), cells.map((c, i) => {
+    const status = c.hidden ? "hidden" : c.status || "live";
+    return React.createElement(React.Fragment, {
+      key: c.id
+    }, React.createElement("div", {
+      className: "hex-row" + (c.hidden ? " hidden-cell" : "") + (status === "draft" ? " draft-cell" : "")
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        flexShrink: 0
+      }
+    }, React.createElement("button", {
+      className: "adm-ghost-btn",
+      style: {
+        padding: "2px 7px",
+        fontSize: 11
+      },
+      onClick: () => moveUp(i)
+    }, "\u2191"), React.createElement("button", {
+      className: "adm-ghost-btn",
+      style: {
+        padding: "2px 7px",
+        fontSize: 11
+      },
+      onClick: () => moveDown(i)
+    }, "\u2193")), React.createElement("div", {
+      style: {
+        width: 18,
+        height: 20,
+        clipPath: "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",
+        background: c.hidden ? "rgba(185,177,163,0.15)" : "linear-gradient(135deg,var(--gold),var(--gold-deep))",
+        flexShrink: 0
+      }
+    }), React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        fontFamily: "Inter,sans-serif",
+        fontSize: 13,
+        color: c.hidden ? "var(--bone-dim)" : "var(--bone)",
+        fontWeight: 500
+      }
+    }, c.label), React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 9,
+        color: "rgba(185,177,163,0.4)",
+        letterSpacing: "0.15em"
+      }
+    }, c.num, " \xB7 ", c.type, c.isCustom ? " · custom" : "")), React.createElement("span", {
+      className: "hex-badge badge-" + status
+    }, status === "live" ? "● LIVE" : status === "draft" ? "◌ DRAFT" : "— MASQUÉ"), React.createElement("select", {
+      className: "adm-input",
+      value: status,
+      onChange: e => setStatus(c.id, e.target.value),
+      style: {
+        width: 110,
+        padding: "6px 8px",
+        fontSize: 11
+      }
+    }, React.createElement("option", {
+      value: "live"
+    }, "\u25CF Live"), React.createElement("option", {
+      value: "draft"
+    }, "\u25CC Brouillon"), React.createElement("option", {
+      value: "hidden"
+    }, "\u2014 Masquer")), React.createElement("button", {
+      className: "adm-ghost-btn",
+      style: {
+        padding: "6px 12px",
+        fontSize: 9,
+        flexShrink: 0
+      },
+      onClick: () => toggleExpand(c.id)
+    }, expandedCellId === c.id ? "FERMER ▲" : "ÉDITER ▼"), c.isCustom && React.createElement("button", {
+      className: "adm-danger-btn",
+      style: {
+        padding: "6px 10px",
+        flexShrink: 0
+      },
+      onClick: () => deleteCell(c.id)
+    }, "\u2715")), expandedCellId === c.id && React.createElement(HexCellEditor, {
+      cell: c,
+      data: data,
+      onSave: onSave
+    }));
+  }), React.createElement("div", {
+    style: {
+      marginTop: 16,
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "rgba(185,177,163,0.35)",
+      lineHeight: 1.6
+    }
+  }, "Les hexagones en brouillon sont masqu\xE9s du portfolio public mais restent \xE9ditables ici.", React.createElement("br", null), "Les hexagones originaux ne peuvent pas \xEAtre supprim\xE9s \u2014 uniquement masqu\xE9s."));
+}
+function SoundsSection({
+  data,
+  onSave
+}) {
+  const [custom, setCustom] = React.useState(data.sounds && data.sounds.custom || {});
+  const [uploading, setUploading] = React.useState({});
+  const [toast, showToast] = useToast();
+  const MAX_SIZE = 500 * 1024;
+  const SOUND_SLOTS = [{
+    key: "hover",
+    label: "SURVOL",
+    desc: "Son joué quand la souris passe sur un hexagone"
+  }, {
+    key: "click",
+    label: "CLIC",
+    desc: "Son joué quand on clique sur un hexagone"
+  }, {
+    key: "lock",
+    label: "LOCK",
+    desc: "Son joué pour les hexagones verrouillés"
+  }];
+  const handleUpload = async (key, file) => {
+    if (!file) return;
+    if (file.size > MAX_SIZE) {
+      showToast("⚠ Fichier trop lourd — maximum 500KB. Utilisez un son court (< 3s).");
+      return;
+    }
+    const allowed = ["audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/webm"];
+    if (!allowed.includes(file.type) && !file.name.match(/\.(mp3|ogg|wav|webm)$/i)) {
+      showToast("⚠ Format non supporté. Utilisez MP3, OGG, WAV ou WEBM.");
+      return;
+    }
+    setUploading(u => ({
+      ...u,
+      [key]: true
+    }));
+    try {
+      const uploaded = await storageUpload("sounds", file, file.type);
+      if (!uploaded) throw new Error("Upload échoué");
+      const next = {
+        ...custom,
+        [key]: uploaded.url
+      };
       setCustom(next);
-      if (window.PORTFOLIO_DATA.sounds.custom) delete window.PORTFOLIO_DATA.sounds.custom[key];
-      const soundsData = { ...(data.sounds || {}), custom: next };
-      onSave({ sounds: soundsData });
-      showToast("✓ Son supprimé — preset synthé actif");
+      if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
+      window.PORTFOLIO_DATA.sounds.custom[key] = uploaded.url;
+      const soundsData = {
+        ...(data.sounds || {}),
+        custom: next
+      };
+      onSave({
+        sounds: soundsData
+      });
+      showToast("✓ Son « " + key + " » uploadé → Supabase");
+    } catch (e) {
+      showToast("⚠ Erreur : " + e.message);
+    }
+    setUploading(u => ({
+      ...u,
+      [key]: false
+    }));
+  };
+  const removeSound = key => {
+    const next = {
+      ...custom
     };
-
-    return (
-      <div>
-        <Toast msg={toast}/>
-        <div className="adm-section-title">Sons personnalisés</div>
-        <div className="adm-section-meta">— HOVER · CLIC · LOCK</div>
-
-        {}
-        <div style={{padding:"18px 20px",border:"1px solid rgba(212,165,116,0.15)",background:"rgba(255,255,255,0.02)",marginBottom:28}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— COMMENT ÇA MARCHE</div>
-          <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:"var(--bone-dim)",lineHeight:1.8}}>
-            <span style={{color:"var(--bone)"}}>1.</span> Chaque hexagone a 3 événements sonores : <strong style={{color:"var(--bone)"}}>Survol</strong>, <strong style={{color:"var(--bone)"}}>Clic</strong>, <strong style={{color:"var(--bone)"}}>Lock</strong>.<br/>
-            <span style={{color:"var(--bone)"}}>2.</span> Par défaut les sons sont générés en synthèse (AudioContext — aucun fichier).<br/>
-            <span style={{color:"var(--bone)"}}>3.</span> Uploadez votre propre fichier audio pour remplacer un son.<br/>
-            <span style={{color:"var(--bone)"}}>4.</span> Si vous supprimez un son custom, le preset synthé reprend automatiquement.<br/>
-          </div>
-          <div style={{marginTop:14,padding:"10px 14px",background:"rgba(212,165,116,0.06)",border:"1px solid rgba(212,165,116,0.15)"}}>
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.2em",color:"var(--gold)",marginBottom:6}}>— FORMATS ACCEPTÉS</div>
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:10,color:"var(--bone-dim)"}}>
-              MP3 · OGG · WAV · WEBM &nbsp;|&nbsp; <span style={{color:"#e05555"}}>MAX 500KB</span> par fichier<br/>
-              <span style={{color:"rgba(185,177,163,0.5)",fontSize:9}}>Conseil : sons courts &lt; 3 secondes, normalisés à -12dB</span>
-            </div>
-          </div>
-        </div>
-
-        {}
-        {SOUND_SLOTS.map(({key, label, desc}) => {
-          const hasCustom = !!custom[key];
-          return (
-            <div key={key} style={{padding:"18px 20px",border:"1px solid rgba(212,165,116,0.12)",marginBottom:10,background:"rgba(255,255,255,0.02)"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <div>
-                  <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.25em",color:hasCustom?"#6ee09a":"var(--gold)"}}>
-                    {hasCustom ? "● " : "○ "}{label}
-                  </div>
-                  <div style={{fontFamily:"Inter,sans-serif",fontSize:12,color:"var(--bone-dim)",marginTop:3}}>{desc}</div>
-                </div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  {hasCustom && (
-                    <>
-                      {}
-                      <button className="adm-ghost-btn" style={{padding:"6px 12px"}}
-                        onClick={() => { const a = new Audio(custom[key]); a.play().catch(()=>{}); }}>
-                        ▷ ÉCOUTER
-                      </button>
-                      <button className="adm-danger-btn" style={{padding:"6px 10px"}}
-                        onClick={() => removeSound(key)}>✕</button>
-                    </>
-                  )}
-                  <label style={{
-                    padding:"8px 16px",cursor:"pointer",
-                    background:"rgba(212,165,116,0.1)",
-                    border:"1px solid rgba(212,165,116,0.3)",
-                    color:"var(--gold-bright)",
-                    fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.2em",
-                    whiteSpace:"nowrap",
-                  }}>
-                    {uploading[key] ? "UPLOAD…" : hasCustom ? "REMPLACER" : "UPLOADER"}
-                    <input type="file" accept="audio/mp3,audio/mpeg,audio/ogg,audio/wav,audio/webm,.mp3,.ogg,.wav,.webm"
-                      style={{display:"none"}}
-                      onChange={e => e.target.files[0] && handleUpload(key, e.target.files[0])} />
-                  </label>
-                </div>
-              </div>
-              {hasCustom && (
-                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.12em",color:"rgba(110,224,154,0.5)",marginTop:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                  ● {custom[key]}
-                </div>
-              )}
-              {!hasCustom && (
-                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.12em",color:"rgba(185,177,163,0.3)",marginTop:6}}>
-                  Synthèse active (preset sélectionné dans le panneau du portfolio)
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  function DashboardSection({ data }) {
-    const photos = ((data.cellPhotos||{}).graphic||[]).length;
-    const vids   = ((data.cellVideos||{}).video||[]).length;
-    const cells  = (data.cells||window.PORTFOLIO_DATA.cells);
-    const live   = cells.filter(c=>!c.hidden&&c.status!=="draft").length;
-    return (
-      <div>
-        <div className="adm-section-title">Tableau de bord</div>
-        <div className="adm-section-meta">— VUE D'ENSEMBLE</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:32}}>
-          <div className="adm-stat"><div className="adm-stat-num">{photos}</div><div className="adm-stat-label">PHOTOS</div></div>
-          <div className="adm-stat"><div className="adm-stat-num">{vids}</div><div className="adm-stat-label">VIDÉOS</div></div>
-          <div className="adm-stat"><div className="adm-stat-num">{live}</div><div className="adm-stat-label">HEX LIVE</div></div>
-          <div className="adm-stat"><div className="adm-stat-num">{cells.length}</div><div className="adm-stat-label">TOTAL</div></div>
-        </div>
-        <div style={{padding:"20px 24px",border:"1px solid rgba(212,165,116,0.12)",background:"rgba(255,255,255,0.02)"}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— AIDE RAPIDE</div>
-          <div style={{fontFamily:"Inter,sans-serif",fontSize:13,color:"var(--bone-dim)",lineHeight:2.2}}>
-            <span style={{color:"var(--gold-bright)"}}>◉ Vidéos</span> — Slider multi-vidéos par URL ou upload<br/>
-            <span style={{color:"var(--gold-bright)"}}>◉ Hexagones</span> — Créer / masquer / brouillon / réordonner<br/>
-            <span style={{color:"var(--gold-bright)"}}>◉ Photos</span> — Upload, compression JPEG auto, lazy load<br/>
-            <span style={{color:"var(--gold-bright)"}}>◉ Contenu</span> — Textes de chaque cellule (rich text)<br/>
-            <span style={{color:"var(--gold-bright)"}}>◉ Profil</span> — Nom, bio, réseaux, balises<br/>
-            <em style={{color:"rgba(185,177,163,0.35)"}}>Accès : index.html#/admin — connexion Supabase Auth</em>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  
-  function PhotoAdminCard({ p, i, onUpdate, onMoveUp, onMoveDown, onDelete, isFirst, isLast }) {
-    const [open, setOpen] = React.useState(false);
-    return (
-      <div style={{border:"1px solid rgba(212,165,116,0.15)",marginBottom:8,background:"rgba(255,255,255,0.02)"}}>
-        {}
-        <div style={{display:"flex",gap:12,alignItems:"center",padding:"10px 12px"}}>
-          <div style={{width:64,height:64,flexShrink:0,overflow:"hidden",border:"1px solid rgba(212,165,116,0.12)",background:"rgba(255,255,255,0.03)"}}>
-            <img src={p.displayUrl||p.dataUrl} alt={p.title||p.name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
-          </div>
-          <div style={{flex:1,minWidth:0}}>
-            <input className="adm-input" value={p.title||""} placeholder="Titre de la création"
-              onChange={e=>onUpdate(p.id,{title:e.target.value})}
-              style={{marginBottom:4,padding:"6px 10px",fontSize:13}} />
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.4)"}}>
-              {p.w}×{p.h} · {p.origSize}KB→{p.newSize}KB
-            </div>
-          </div>
-          <button className="adm-ghost-btn" style={{padding:"6px 12px",fontSize:10}} onClick={()=>setOpen(o=>!o)}>
-            {open ? "FERMER ▲" : "DÉTAILS ▼"}
-          </button>
-          <div style={{display:"flex",flexDirection:"column",gap:3}}>
-            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isFirst?0.3:1}} onClick={onMoveUp} disabled={isFirst}>↑</button>
-            <button className="adm-ghost-btn" style={{padding:"3px 7px",fontSize:11,opacity:isLast?0.3:1}} onClick={onMoveDown} disabled={isLast}>↓</button>
-          </div>
-          <button className="adm-danger-btn" style={{padding:"8px 12px"}} onClick={onDelete}>✕</button>
-        </div>
-        {}
-        {open && (
-          <div style={{padding:"0 12px 16px",borderTop:"1px solid rgba(212,165,116,0.1)"}}>
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)",margin:"14px 0 12px"}}>— MÉTADONNÉES · panneau du bas au clic</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:14}}>
-              {[["year","ANNÉE","2025"],["client","CLIENT","Studio X"],["technique","TECHNIQUE","Print · A2"],["format","FORMAT","297×420mm"]].map(([k,l,ph])=>(
-                <div key={k}>
-                  <label className="adm-label">{l}</label>
-                  <input className="adm-input" value={p[k]||""} placeholder={ph}
-                    style={{padding:"7px 10px",fontSize:12}}
-                    onChange={e=>onUpdate(p.id,{[k]:e.target.value})} />
-                </div>
-              ))}
-            </div>
-            <label className="adm-label">DESCRIPTION (rich text · panneau du bas)</label>
-            <VideoRichEditor id={"pdesc-"+p.id} value={p.description||""} onChange={val=>onUpdate(p.id,{description:val})} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function PhotoSection({ data, onSave }) {
-    const cellPhotos = data.cellPhotos || {};
-    const [photos, setPhotos] = React.useState(cellPhotos.graphic || []);
-    const [uploading, setUploading] = React.useState(false);
-    const [progress, setProgress] = React.useState(0);
-    const [toast, showToast] = useToast();
-    const dropRef = React.useRef(null);
-
-    const save = (ph) => {
-      const next = { ...cellPhotos, graphic: ph };
-      onSave({ cellPhotos: next });
-      
-      const liveCells = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c =>
-        c.id === "graphic" ? { ...c, photos: ph } : c
-      );
-      window.__LIVE_CELLS = liveCells;
-      window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c =>
-        c.id === "graphic" ? { ...c, photos: ph } : c
-      );
-      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+    delete next[key];
+    setCustom(next);
+    if (window.PORTFOLIO_DATA.sounds.custom) delete window.PORTFOLIO_DATA.sounds.custom[key];
+    const soundsData = {
+      ...(data.sounds || {}),
+      custom: next
     };
-
-    const handleFiles = async (files) => {
-      setUploading(true);
-      const results=[];
-      const arr=Array.from(files).filter(f=>f.type.startsWith("image/"));
-      for(let i=0;i<arr.length;i++){
-        setProgress(Math.round((i/arr.length)*85));
-        const c=await compressImage(arr[i]);
-        
-        let storageUrl = null;
-        try {
-          const compressedFile = dataUrlToFile(c.dataUrl, arr[i].name.replace(/\.[^.]+$/, ".jpg"));
-          const uploaded = await storageUpload("photos", compressedFile, "image/jpeg");
-          if (uploaded) storageUrl = uploaded.url;
-        } catch(e) { console.warn("[Upload] Storage failed, keeping dataUrl:", e); }
-        results.push({
-          id: Date.now()+i,
-          dataUrl: c.dataUrl,          
-          storageUrl: storageUrl,       
-          displayUrl: storageUrl || c.dataUrl,  
-          name: arr[i].name, w:c.w, h:c.h,
-          origSize:Math.round(c.origSize/1024),
-          newSize:Math.round(c.newSize/1024),
-          title:"", description:"",
-          uploadedAt:new Date().toISOString()
-        });
+    onSave({
+      sounds: soundsData
+    });
+    showToast("✓ Son supprimé — preset synthé actif");
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Sons personnalis\xE9s"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 HOVER \xB7 CLIC \xB7 LOCK"), React.createElement("div", {
+    style: {
+      padding: "18px 20px",
+      border: "1px solid rgba(212,165,116,0.15)",
+      background: "rgba(255,255,255,0.02)",
+      marginBottom: 28
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 COMMENT \xC7A MARCHE"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 13,
+      color: "var(--bone-dim)",
+      lineHeight: 1.8
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "1."), " Chaque hexagone a 3 \xE9v\xE9nements sonores : ", React.createElement("strong", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "Survol"), ", ", React.createElement("strong", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "Clic"), ", ", React.createElement("strong", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "Lock"), ".", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "2."), " Par d\xE9faut les sons sont g\xE9n\xE9r\xE9s en synth\xE8se (AudioContext \u2014 aucun fichier).", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "3."), " Uploadez votre propre fichier audio pour remplacer un son.", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--bone)"
+    }
+  }, "4."), " Si vous supprimez un son custom, le preset synth\xE9 reprend automatiquement.", React.createElement("br", null)), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      padding: "10px 14px",
+      background: "rgba(212,165,116,0.06)",
+      border: "1px solid rgba(212,165,116,0.15)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.2em",
+      color: "var(--gold)",
+      marginBottom: 6
+    }
+  }, "\u2014 FORMATS ACCEPT\xC9S"), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10,
+      color: "var(--bone-dim)"
+    }
+  }, "MP3 \xB7 OGG \xB7 WAV \xB7 WEBM \xA0|\xA0 ", React.createElement("span", {
+    style: {
+      color: "#e05555"
+    }
+  }, "MAX 500KB"), " par fichier", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "rgba(185,177,163,0.5)",
+      fontSize: 9
+    }
+  }, "Conseil : sons courts < 3 secondes, normalis\xE9s \xE0 -12dB")))), SOUND_SLOTS.map(({
+    key,
+    label,
+    desc
+  }) => {
+    const hasCustom = !!custom[key];
+    return React.createElement("div", {
+      key: key,
+      style: {
+        padding: "18px 20px",
+        border: "1px solid rgba(212,165,116,0.12)",
+        marginBottom: 10,
+        background: "rgba(255,255,255,0.02)"
       }
-      setProgress(100);
-      const next=[...results,...photos];
-      setPhotos(next); save(next);
-      setUploading(false);setProgress(0);
-      const allUploaded = results.every(r => r.storageUrl);
-      const someUploaded = results.some(r => r.storageUrl);
-      if (allUploaded)  showToast("✓ "+results.length+" création(s) → Supabase Storage");
-      else if (someUploaded) showToast("⚠ Partiellement uploadé — vérifiez la session");
-      else              showToast("✓ "+results.length+" création(s) (local — reconnectez-vous pour Supabase)");
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8
+      }
+    }, React.createElement("div", null, React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 10,
+        letterSpacing: "0.25em",
+        color: hasCustom ? "#6ee09a" : "var(--gold)"
+      }
+    }, hasCustom ? "● " : "○ ", label), React.createElement("div", {
+      style: {
+        fontFamily: "Inter,sans-serif",
+        fontSize: 12,
+        color: "var(--bone-dim)",
+        marginTop: 3
+      }
+    }, desc)), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "center"
+      }
+    }, hasCustom && React.createElement(React.Fragment, null, React.createElement("button", {
+      className: "adm-ghost-btn",
+      style: {
+        padding: "6px 12px"
+      },
+      onClick: () => {
+        const a = new Audio(custom[key]);
+        a.play().catch(() => {});
+      }
+    }, "\u25B7 \xC9COUTER"), React.createElement("button", {
+      className: "adm-danger-btn",
+      style: {
+        padding: "6px 10px"
+      },
+      onClick: () => removeSound(key)
+    }, "\u2715")), React.createElement("label", {
+      style: {
+        padding: "8px 16px",
+        cursor: "pointer",
+        background: "rgba(212,165,116,0.1)",
+        border: "1px solid rgba(212,165,116,0.3)",
+        color: "var(--gold-bright)",
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 9,
+        letterSpacing: "0.2em",
+        whiteSpace: "nowrap"
+      }
+    }, uploading[key] ? "UPLOAD…" : hasCustom ? "REMPLACER" : "UPLOADER", React.createElement("input", {
+      type: "file",
+      accept: "audio/mp3,audio/mpeg,audio/ogg,audio/wav,audio/webm,.mp3,.ogg,.wav,.webm",
+      style: {
+        display: "none"
+      },
+      onChange: e => e.target.files[0] && handleUpload(key, e.target.files[0])
+    })))), hasCustom && React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 8,
+        letterSpacing: "0.12em",
+        color: "rgba(110,224,154,0.5)",
+        marginTop: 6,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, "\u25CF ", custom[key]), !hasCustom && React.createElement("div", {
+      style: {
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 8,
+        letterSpacing: "0.12em",
+        color: "rgba(185,177,163,0.3)",
+        marginTop: 6
+      }
+    }, "Synth\xE8se active (preset s\xE9lectionn\xE9 dans le panneau du portfolio)"));
+  }));
+}
+function DashboardSection({
+  data
+}) {
+  const photos = ((data.cellPhotos || {}).graphic || []).length;
+  const vids = ((data.cellVideos || {}).video || []).length;
+  const cells = data.cells || window.PORTFOLIO_DATA.cells;
+  const live = cells.filter(c => !c.hidden && c.status !== "draft").length;
+  return React.createElement("div", null, React.createElement("div", {
+    className: "adm-section-title"
+  }, "Tableau de bord"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 VUE D'ENSEMBLE"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(4,1fr)",
+      gap: 14,
+      marginBottom: 32
+    }
+  }, React.createElement("div", {
+    className: "adm-stat"
+  }, React.createElement("div", {
+    className: "adm-stat-num"
+  }, photos), React.createElement("div", {
+    className: "adm-stat-label"
+  }, "PHOTOS")), React.createElement("div", {
+    className: "adm-stat"
+  }, React.createElement("div", {
+    className: "adm-stat-num"
+  }, vids), React.createElement("div", {
+    className: "adm-stat-label"
+  }, "VID\xC9OS")), React.createElement("div", {
+    className: "adm-stat"
+  }, React.createElement("div", {
+    className: "adm-stat-num"
+  }, live), React.createElement("div", {
+    className: "adm-stat-label"
+  }, "HEX LIVE")), React.createElement("div", {
+    className: "adm-stat"
+  }, React.createElement("div", {
+    className: "adm-stat-num"
+  }, cells.length), React.createElement("div", {
+    className: "adm-stat-label"
+  }, "TOTAL"))), React.createElement("div", {
+    style: {
+      padding: "20px 24px",
+      border: "1px solid rgba(212,165,116,0.12)",
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 AIDE RAPIDE"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 13,
+      color: "var(--bone-dim)",
+      lineHeight: 2.2
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "var(--gold-bright)"
+    }
+  }, "\u25C9 Vid\xE9os"), " \u2014 Slider multi-vid\xE9os par URL ou upload", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--gold-bright)"
+    }
+  }, "\u25C9 Hexagones"), " \u2014 Cr\xE9er / masquer / brouillon / r\xE9ordonner", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--gold-bright)"
+    }
+  }, "\u25C9 Photos"), " \u2014 Upload, compression JPEG auto, lazy load", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--gold-bright)"
+    }
+  }, "\u25C9 Contenu"), " \u2014 Textes de chaque cellule (rich text)", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--gold-bright)"
+    }
+  }, "\u25C9 Profil"), " \u2014 Nom, bio, r\xE9seaux, balises", React.createElement("br", null), React.createElement("em", {
+    style: {
+      color: "rgba(185,177,163,0.35)"
+    }
+  }, "Acc\xE8s : index.html#/admin \u2014 connexion Supabase Auth"))));
+}
+function PhotoAdminCard({
+  p,
+  i,
+  onUpdate,
+  onMoveUp,
+  onMoveDown,
+  onDelete,
+  isFirst,
+  isLast
+}) {
+  const [open, setOpen] = React.useState(false);
+  return React.createElement("div", {
+    style: {
+      border: "1px solid rgba(212,165,116,0.15)",
+      marginBottom: 8,
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      padding: "10px 12px"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: 64,
+      height: 64,
+      flexShrink: 0,
+      overflow: "hidden",
+      border: "1px solid rgba(212,165,116,0.12)",
+      background: "rgba(255,255,255,0.03)"
+    }
+  }, React.createElement("img", {
+    src: p.displayUrl || p.dataUrl,
+    alt: p.title || p.name,
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    }
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("input", {
+    className: "adm-input",
+    value: p.title || "",
+    placeholder: "Titre de la cr\xE9ation",
+    onChange: e => onUpdate(p.id, {
+      title: e.target.value
+    }),
+    style: {
+      marginBottom: 4,
+      padding: "6px 10px",
+      fontSize: 13
+    }
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.12em",
+      color: "rgba(185,177,163,0.4)"
+    }
+  }, p.w, "\xD7", p.h, " \xB7 ", p.origSize, "KB\u2192", p.newSize, "KB")), React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      padding: "6px 12px",
+      fontSize: 10
+    },
+    onClick: () => setOpen(o => !o)
+  }, open ? "FERMER ▲" : "DÉTAILS ▼"), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    }
+  }, React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      padding: "3px 7px",
+      fontSize: 11,
+      opacity: isFirst ? 0.3 : 1
+    },
+    onClick: onMoveUp,
+    disabled: isFirst
+  }, "\u2191"), React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      padding: "3px 7px",
+      fontSize: 11,
+      opacity: isLast ? 0.3 : 1
+    },
+    onClick: onMoveDown,
+    disabled: isLast
+  }, "\u2193")), React.createElement("button", {
+    className: "adm-danger-btn",
+    style: {
+      padding: "8px 12px"
+    },
+    onClick: onDelete
+  }, "\u2715")), open && React.createElement("div", {
+    style: {
+      padding: "0 12px 16px",
+      borderTop: "1px solid rgba(212,165,116,0.1)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      margin: "14px 0 12px"
+    }
+  }, "\u2014 M\xC9TADONN\xC9ES \xB7 panneau du bas au clic"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr 1fr",
+      gap: 10,
+      marginBottom: 14
+    }
+  }, [["year", "ANNÉE", "2025"], ["client", "CLIENT", "Studio X"], ["technique", "TECHNIQUE", "Print · A2"], ["format", "FORMAT", "297×420mm"]].map(([k, l, ph]) => React.createElement("div", {
+    key: k
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, l), React.createElement("input", {
+    className: "adm-input",
+    value: p[k] || "",
+    placeholder: ph,
+    style: {
+      padding: "7px 10px",
+      fontSize: 12
+    },
+    onChange: e => onUpdate(p.id, {
+      [k]: e.target.value
+    })
+  })))), React.createElement("label", {
+    className: "adm-label"
+  }, "DESCRIPTION (rich text \xB7 panneau du bas)"), React.createElement(VideoRichEditor, {
+    id: "pdesc-" + p.id,
+    value: p.description || "",
+    onChange: val => onUpdate(p.id, {
+      description: val
+    })
+  })));
+}
+function PhotoSection({
+  data,
+  onSave
+}) {
+  const cellPhotos = data.cellPhotos || {};
+  const [photos, setPhotos] = React.useState(cellPhotos.graphic || []);
+  const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [toast, showToast] = useToast();
+  const dropRef = React.useRef(null);
+  const save = ph => {
+    const next = {
+      ...cellPhotos,
+      graphic: ph
     };
-
-    const moveUp=(i)=>{if(i===0)return;const a=[...photos];[a[i-1],a[i]]=[a[i],a[i-1]];setPhotos(a);save(a);};
-    const moveDown=(i)=>{if(i===photos.length-1)return;const a=[...photos];[a[i],a[i+1]]=[a[i+1],a[i]];setPhotos(a);save(a);};
-    const del=(id)=>{if(!confirm("Supprimer cette création ?"))return;const n=photos.filter(p=>p.id!==id);setPhotos(n);save(n);};
-    const upd=(id,patch)=>{const n=photos.map(p=>p.id===id?{...p,...patch}:p);setPhotos(n);save(n);};
-
-    return (
-      <div>
-        <Toast msg={toast}/>
-        <Toast msg={toast}/>
-        <div className="adm-section-title">Graphic Design</div>
-        <div className="adm-section-meta">— CRÉATIONS · 6 CARRÉS · PANNEAU DÉTAILS</div>
-
-        <div ref={dropRef} className="adm-upload-zone" style={{marginBottom:24}}
-          onClick={()=>document.getElementById("adm-img-input").click()}
-          onDrop={e=>{e.preventDefault();dropRef.current.classList.remove("drag-over");handleFiles(e.dataTransfer.files);}}
-          onDragOver={e=>{e.preventDefault();dropRef.current.classList.add("drag-over");}}
-          onDragLeave={()=>dropRef.current.classList.remove("drag-over")}>
-          <input id="adm-img-input" type="file" multiple accept="image}
-              <button
-                onClick={()=>setSocial(p=>p.map((x,j)=>j===i?{...x,visible:!(x.visible!==false)}:x))}
-                style={{
-                  width:36,height:36,flexShrink:0,cursor:"pointer",
-                  background: s.visible!==false ? "rgba(110,224,154,0.15)" : "rgba(255,255,255,0.04)",
-                  border: s.visible!==false ? "1px solid rgba(110,224,154,0.4)" : "1px solid rgba(212,165,116,0.15)",
-                  color: s.visible!==false ? "#6ee09a" : "rgba(185,177,163,0.3)",
-                  fontSize:14, display:"flex", alignItems:"center", justifyContent:"center",
-                  transition:"all 200ms",
-                }}
-                title={s.visible!==false ? "Visible — cliquer pour masquer" : "Masqué — cliquer pour afficher"}>
-                {s.visible!==false ? "●" : "○"}
-              </button>
-              <input className="adm-input" value={s.label}
-                onChange={e=>setSocial(p=>p.map((x,j)=>j===i?{...x,label:e.target.value}:x))}
-                style={{width:120, opacity: s.visible!==false ? 1 : 0.4}}/>
-              <input className="adm-input" value={s.url}
-                onChange={e=>setSocial(p=>p.map((x,j)=>j===i?{...x,url:e.target.value}:x))}
-                style={{flex:1, opacity: s.visible!==false ? 1 : 0.4}}
-                placeholder="https://…"/>
-              {}
-              {social.length > 1 && (
-                <button className="adm-danger-btn" style={{padding:"6px 10px",flexShrink:0}}
-                  onClick={()=>setSocial(p=>p.filter((_,j)=>j!==i))}>✕</button>
-              )}
-            </div>
-          ))}
-          <button className="adm-ghost-btn" style={{marginTop:6}}
-            onClick={()=>setSocial(p=>[...p,{label:"Nouveau",url:"https://",visible:true}])}>
-            + AJOUTER UN RÉSEAU
-          </button>
-        </div>
-        <button className="adm-save-btn" onClick={save}>SAUVEGARDER</button>
-      </div>
-    );
-  }
-
-  function SettingsSection({ onLogout }) {
-    const [pw,setPw]=React.useState("");const[pw2,setPw2]=React.useState("");
-    const [toast,showToast]=useToast();
-    const changePw=async()=>{
-      if(pw.length<6){showToast("⚠ Minimum 6 caractères");return;}
-      if(pw!==pw2){showToast("⚠ Mots de passe différents");return;}
+    onSave({
+      cellPhotos: next
+    });
+    const liveCells = (window.__LIVE_CELLS || window.PORTFOLIO_DATA.cells).map(c => c.id === "graphic" ? {
+      ...c,
+      photos: ph
+    } : c);
+    window.__LIVE_CELLS = liveCells;
+    window.PORTFOLIO_DATA.cells = window.PORTFOLIO_DATA.cells.map(c => c.id === "graphic" ? {
+      ...c,
+      photos: ph
+    } : c);
+    window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+  };
+  const handleFiles = async files => {
+    setUploading(true);
+    const results = [];
+    const arr = Array.from(files).filter(f => f.type.startsWith("image/"));
+    for (let i = 0; i < arr.length; i++) {
+      setProgress(Math.round(i / arr.length * 85));
+      const c = await compressImage(arr[i]);
+      let storageUrl = null;
       try {
-        const { error } = await _supa.auth.updateUser({ password: pw });
-        if (error) throw error;
-        setPw(""); setPw2("");
-        showToast("✓ Mot de passe mis à jour dans Supabase");
-      } catch(e) { showToast("⚠ Erreur : " + e.message); }
+        const compressedFile = dataUrlToFile(c.dataUrl, arr[i].name.replace(/\.[^.]+$/, ".jpg"));
+        const uploaded = await storageUpload("photos", compressedFile, "image/jpeg");
+        if (uploaded) storageUrl = uploaded.url;
+      } catch (e) {
+        console.warn("[Upload] Storage failed, keeping dataUrl:", e);
+      }
+      results.push({
+        id: Date.now() + i,
+        dataUrl: c.dataUrl,
+        storageUrl: storageUrl,
+        displayUrl: storageUrl || c.dataUrl,
+        name: arr[i].name,
+        w: c.w,
+        h: c.h,
+        origSize: Math.round(c.origSize / 1024),
+        newSize: Math.round(c.newSize / 1024),
+        title: "",
+        description: "",
+        uploadedAt: new Date().toISOString()
+      });
+    }
+    setProgress(100);
+    const next = [...results, ...photos];
+    setPhotos(next);
+    save(next);
+    setUploading(false);
+    setProgress(0);
+    const allUploaded = results.every(r => r.storageUrl);
+    const someUploaded = results.some(r => r.storageUrl);
+    if (allUploaded) showToast("✓ " + results.length + " création(s) → Supabase Storage");else if (someUploaded) showToast("⚠ Partiellement uploadé — vérifiez la session");else showToast("✓ " + results.length + " création(s) (local — reconnectez-vous pour Supabase)");
+  };
+  const moveUp = i => {
+    if (i === 0) return;
+    const a = [...photos];
+    [a[i - 1], a[i]] = [a[i], a[i - 1]];
+    setPhotos(a);
+    save(a);
+  };
+  const moveDown = i => {
+    if (i === photos.length - 1) return;
+    const a = [...photos];
+    [a[i], a[i + 1]] = [a[i + 1], a[i]];
+    setPhotos(a);
+    save(a);
+  };
+  const del = id => {
+    if (!confirm("Supprimer cette création ?")) return;
+    const n = photos.filter(p => p.id !== id);
+    setPhotos(n);
+    save(n);
+  };
+  const upd = (id, patch) => {
+    const n = photos.map(p => p.id === id ? {
+      ...p,
+      ...patch
+    } : p);
+    setPhotos(n);
+    save(n);
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Graphic Design"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 CR\xC9ATIONS \xB7 6 CARR\xC9S \xB7 PANNEAU D\xC9TAILS"), React.createElement("div", {
+    ref: dropRef,
+    className: "adm-upload-zone",
+    style: {
+      marginBottom: 24
+    },
+    onClick: () => document.getElementById("adm-img-input").click(),
+    onDrop: e => {
+      e.preventDefault();
+      dropRef.current.classList.remove("drag-over");
+      handleFiles(e.dataTransfer.files);
+    },
+    onDragOver: e => {
+      e.preventDefault();
+      dropRef.current.classList.add("drag-over");
+    },
+    onDragLeave: () => dropRef.current.classList.remove("drag-over")
+  }, React.createElement("input", {
+    id: "adm-img-input",
+    type: "file",
+    multiple: true,
+    accept: "image/*",
+    style: {
+      display: "none"
+    },
+    onChange: e => handleFiles(e.target.files)
+  }), React.createElement("div", {
+    style: {
+      fontSize: 26,
+      marginBottom: 8,
+      color: "rgba(212,165,116,0.4)"
+    }
+  }, "\u25C8"), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 11,
+      letterSpacing: "0.25em",
+      color: "var(--bone-dim)"
+    }
+  }, "D\xC9POSER DES CR\xC9ATIONS ICI"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "rgba(185,177,163,0.4)",
+      marginTop: 6
+    }
+  }, "JPEG 82% auto \xB7 les 6 premi\xE8res s'affichent dans l'hexagone"), uploading && React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.2em",
+      color: "var(--gold)",
+      marginBottom: 6
+    }
+  }, "COMPRESSION\u2026 ", progress, "%"), React.createElement("div", {
+    className: "adm-progress-bar"
+  }, React.createElement("div", {
+    className: "adm-progress-fill",
+    style: {
+      width: progress + "%"
+    }
+  })))), React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--bone-dim)"
+    }
+  }, photos.length, " CR\xC9ATION", photos.length !== 1 ? "S" : "", " \xB7 ", Math.min(photos.length, 6), " VISIBLE", Math.min(photos.length, 6) !== 1 ? "S" : "", " DANS L'HEXAGONE")), photos.length === 0 && React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 13,
+      color: "rgba(185,177,163,0.3)",
+      padding: "20px 0"
+    }
+  }, "Aucune cr\xE9ation. Uploadez vos visuels graphiques."), photos.map((p, i) => React.createElement(PhotoAdminCard, {
+    key: p.id,
+    p: p,
+    i: i,
+    onUpdate: upd,
+    onMoveUp: () => moveUp(i),
+    onMoveDown: () => moveDown(i),
+    onDelete: () => del(p.id),
+    isFirst: i === 0,
+    isLast: i === photos.length - 1
+  })), photos.length > 6 && React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "rgba(185,177,163,0.35)"
+    }
+  }, "Seules les 6 premi\xE8res cr\xE9ations s'affichent dans l'hexagone. R\xE9ordonnez avec \u2191\u2193."));
+}
+function ContentSection({
+  data,
+  onSave
+}) {
+  const baseCells = (data.cells || window.PORTFOLIO_DATA.cells).map(c => ({
+    ...c,
+    detail: {
+      ...c.detail
+    },
+    content: {
+      ...c.content
+    }
+  }));
+  const [cells, setCells] = React.useState(baseCells);
+  const [sel, setSel] = React.useState(0);
+  const [toast, showToast] = useToast();
+  const upd = (path, val) => setCells(prev => prev.map((c, i) => {
+    if (i !== sel) return c;
+    const [a, b] = path.split(".");
+    if (b) return {
+      ...c,
+      [a]: {
+        ...c[a],
+        [b]: val
+      }
     };
-    const exportData=async()=>{
-      const d = await dbLoad();
-      const b=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
-      const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="leadimas-admin.json";a.click();
-      showToast("✓ Export depuis Supabase");
+    return {
+      ...c,
+      [a]: val
     };
-    const clearAll=()=>{if(!confirm("Supprimer TOUTES les données admin ?"))return;localStorage.removeItem(ADMIN_DATA_KEY);showToast("✓ Supprimé");setTimeout(()=>location.reload(),1500);};
-    return (
-      <div style={{maxWidth:500}}>
-        <Toast msg={toast}/>
-        <div className="adm-section-title">Paramètres</div>
-        <div className="adm-section-meta">— SÉCURITÉ · EXPORT · SUPABASE-READY</div>
-        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:18,background:"rgba(255,255,255,0.02)"}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:14}}>— MOT DE PASSE SUPABASE AUTH</div>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.12em",color:"rgba(110,224,154,0.5)",marginBottom:14}}>
-            ● Session active : {_activeSession?.user?.email || "—"}
-          </div>
-          <div className="adm-field-group"><label className="adm-label">NOUVEAU</label><input className="adm-input" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="6 caractères min."/></div>
-          <div className="adm-field-group"><label className="adm-label">CONFIRMER</label><input className="adm-input" type="password" value={pw2} onChange={e=>setPw2(e.target.value)} placeholder="Répéter"/></div>
-          <button className="adm-save-btn" onClick={changePw}>CHANGER</button>
-        </div>
-        <div style={{padding:"20px 22px",border:"1px solid rgba(212,165,116,0.15)",marginBottom:18,background:"rgba(255,255,255,0.02)"}}>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"var(--gold)",marginBottom:12}}>— DONNÉES (localStorage)</div>
-          <div style={{display:"flex",gap:12,marginTop:12}}><button className="adm-save-btn" onClick={exportData}>EXPORTER JSON</button><button className="adm-danger-btn" onClick={clearAll}>TOUT EFFACER</button></div>
-        </div>
-        <div style={{padding:"20px 22px",border:"1px solid rgba(110,224,154,0.2)",background:"rgba(110,224,154,0.04)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:"#6ee09a",boxShadow:"0 0 8px #6ee09a"}}/>
-            <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.3em",color:"#6ee09a"}}>SUPABASE CONNECTÉ</div>
-          </div>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.5)",marginBottom:4}}>URL</div>
-          <div style={{fontFamily:"Inter,sans-serif",fontSize:11,color:"var(--bone-dim)",marginBottom:10,wordBreak:"break-all"}}>{SUPA_URL}</div>
-          <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:9,letterSpacing:"0.12em",color:"rgba(185,177,163,0.5)",marginBottom:4}}>BUCKET</div>
-          <div style={{fontFamily:"Inter,sans-serif",fontSize:11,color:"var(--bone-dim)",marginBottom:16}}>{SUPA_BUCKET}</div>
-          <button className="adm-save-btn" onClick={async()=>{
-            try{
-              const d=loadAdminData();
-              await dbSave(d);
-              showToast("✓ Synchronisé avec Supabase");
-            }catch(e){showToast("⚠ Erreur Supabase: "+e.message);}
-          }}>↑ FORCER LA SYNCHRO</button>
-        </div>
-        <div style={{marginTop:24,paddingTop:18,borderTop:"1px solid rgba(212,165,116,0.1)"}}><button className="adm-danger-btn" onClick={onLogout}>↩ DÉCONNEXION</button></div>
-      </div>
-    );
-  }
-
-  
-  const ADM_NAV = [
-    { id:"dashboard", icon:"◈", label:"Tableau de bord" },
-    { id:"videos",    icon:"▷", label:"Vidéos" },
-    { id:"hexagons",  icon:"⬡", label:"Hexagones" },
-    { id:"photos",    icon:"◼", label:"Photos" },
-    { id:"content",   icon:"✦", label:"Contenu" },
-    { id:"artist",    icon:"◎", label:"Profil" },
-    { id:"sounds",    icon:"♪", label:"Sons" },
-    { id:"settings",  icon:"⊙", label:"Paramètres" },
-  ];
-
-  function AdminDashboard({ onLogout, userEmail }) {
-    const [section, setSection] = React.useState("dashboard");
-    const [data, setData] = React.useState(() => loadAdminData());
-    const [syncing, setSyncing] = React.useState(false);
-    const [syncStatus, setSyncStatus] = React.useState("local");
-
-    
-    React.useEffect(() => {
-      setSyncing(true);
-
-      
-      const cached = window.__supaData;
-      if (cached && Object.keys(cached).length) {
-        setData(cached);
+  }));
+  const save = () => {
+    window.PORTFOLIO_DATA.cells = cells;
+    onSave({
+      cells
+    });
+    pushLiveCells(cells);
+    showToast("✓ Contenu sauvegardé");
+  };
+  const cell = cells[sel];
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 28
+    }
+  }, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    style: {
+      width: 155,
+      flexShrink: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--bone-dim)",
+      marginBottom: 12
+    }
+  }, "\u2014 CELLULES"), cells.map((c, i) => React.createElement("button", {
+    key: c.id,
+    onClick: () => setSel(i),
+    style: {
+      display: "block",
+      width: "100%",
+      textAlign: "left",
+      padding: "10px 12px",
+      marginBottom: 3,
+      background: i === sel ? "rgba(212,165,116,0.1)" : "transparent",
+      border: "1px solid " + (i === sel ? "rgba(212,165,116,0.3)" : "transparent"),
+      color: i === sel ? "var(--gold-bright)" : "var(--bone-dim)",
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      cursor: "pointer"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      color: "var(--gold)",
+      display: "block",
+      marginBottom: 2
+    }
+  }, c.num), c.label, c.hidden ? " 👁" : "", c.status === "draft" ? " ◌" : ""))), React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, React.createElement("div", {
+    className: "adm-section-title"
+  }, cell.label), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 CELLULE ", cell.num, " \xB7 ", cell.type.toUpperCase()), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "TITRE D\xC9TAIL"), React.createElement("input", {
+    className: "adm-input",
+    value: cell.detail.title || "",
+    onChange: e => upd("detail.title", e.target.value)
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "CORPS (rich text)"), React.createElement(RichEditor, {
+    id: cell.id + "-b",
+    value: cell.detail.body || "",
+    onChange: v => upd("detail.body", v),
+    placeholder: "Description\u2026"
+  })), cell.content.sub !== undefined && React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "SOUS-TITRE"), React.createElement("input", {
+    className: "adm-input",
+    value: cell.content.sub || "",
+    onChange: e => upd("content.sub", e.target.value)
+  })), Array.isArray(cell.content.items) && React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "ITEMS (un par ligne)"), React.createElement("textarea", {
+    className: "adm-textarea",
+    rows: 4,
+    value: (cell.content.items || []).join("\n"),
+    onChange: e => upd("content.items", e.target.value.split("\n").filter(Boolean))
+  })), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: save
+  }, "SAUVEGARDER")));
+}
+function ArtistSection({
+  data,
+  onSave
+}) {
+  const [artist, setArtist] = React.useState({
+    ...window.PORTFOLIO_DATA.artist,
+    ...(data.artist || {})
+  });
+  const [social, setSocial] = React.useState(data.social || window.PORTFOLIO_DATA.social.map(s => ({
+    ...s
+  })));
+  const [tags, setTags] = React.useState(data.tags || []);
+  const [toast, showToast] = useToast();
+  const upd = (k, v) => setArtist(a => ({
+    ...a,
+    [k]: v
+  }));
+  const save = () => {
+    Object.assign(window.PORTFOLIO_DATA.artist, artist);
+    window.PORTFOLIO_DATA.social = social;
+    onSave({
+      artist,
+      social,
+      tags
+    });
+    window.dispatchEvent(new CustomEvent("ld-social-updated"));
+    showToast("✓ Profil sauvegardé");
+  };
+  return React.createElement("div", null, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Profil"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 IDENTIT\xC9 \xB7 R\xC9SEAUX \xB7 BALISES"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 14,
+      marginBottom: 20
+    }
+  }, [["name", "Nom"], ["role", "Rôle"], ["studio", "Studio"], ["email", "Email"], ["availability", "Disponibilité"], ["tagline", "Tagline"]].map(([k, l]) => React.createElement("div", {
+    key: k,
+    className: "adm-field-group",
+    style: {
+      marginBottom: 0
+    }
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, l.toUpperCase()), React.createElement("input", {
+    className: "adm-input",
+    value: artist[k] || "",
+    onChange: e => upd(k, e.target.value)
+  })))), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "BIO (rich text)"), React.createElement(RichEditor, {
+    id: "bio",
+    value: artist.bio || "",
+    onChange: v => upd("bio", v),
+    placeholder: "Biographie\u2026"
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "BALISES"), React.createElement(TagInput, {
+    tags: tags,
+    onChange: setTags
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "R\xC9SEAUX SOCIAUX"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 12,
+      color: "var(--bone-dim)",
+      marginBottom: 12,
+      lineHeight: 1.6
+    }
+  }, "Activez ou d\xE9sactivez chaque lien \u2014 les liens d\xE9sactiv\xE9s n'apparaissent plus dans le menu du site."), social.map((s, i) => React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      gap: 10,
+      marginBottom: 8,
+      alignItems: "center"
+    }
+  }, React.createElement("button", {
+    onClick: () => setSocial(p => p.map((x, j) => j === i ? {
+      ...x,
+      visible: !(x.visible !== false)
+    } : x)),
+    style: {
+      width: 36,
+      height: 36,
+      flexShrink: 0,
+      cursor: "pointer",
+      background: s.visible !== false ? "rgba(110,224,154,0.15)" : "rgba(255,255,255,0.04)",
+      border: s.visible !== false ? "1px solid rgba(110,224,154,0.4)" : "1px solid rgba(212,165,116,0.15)",
+      color: s.visible !== false ? "#6ee09a" : "rgba(185,177,163,0.3)",
+      fontSize: 14,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "all 200ms"
+    },
+    title: s.visible !== false ? "Visible — cliquer pour masquer" : "Masqué — cliquer pour afficher"
+  }, s.visible !== false ? "●" : "○"), React.createElement("input", {
+    className: "adm-input",
+    value: s.label,
+    onChange: e => setSocial(p => p.map((x, j) => j === i ? {
+      ...x,
+      label: e.target.value
+    } : x)),
+    style: {
+      width: 120,
+      opacity: s.visible !== false ? 1 : 0.4
+    }
+  }), React.createElement("input", {
+    className: "adm-input",
+    value: s.url,
+    onChange: e => setSocial(p => p.map((x, j) => j === i ? {
+      ...x,
+      url: e.target.value
+    } : x)),
+    style: {
+      flex: 1,
+      opacity: s.visible !== false ? 1 : 0.4
+    },
+    placeholder: "https://\u2026"
+  }), social.length > 1 && React.createElement("button", {
+    className: "adm-danger-btn",
+    style: {
+      padding: "6px 10px",
+      flexShrink: 0
+    },
+    onClick: () => setSocial(p => p.filter((_, j) => j !== i))
+  }, "\u2715"))), React.createElement("button", {
+    className: "adm-ghost-btn",
+    style: {
+      marginTop: 6
+    },
+    onClick: () => setSocial(p => [...p, {
+      label: "Nouveau",
+      url: "https://",
+      visible: true
+    }])
+  }, "+ AJOUTER UN R\xC9SEAU")), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: save
+  }, "SAUVEGARDER"));
+}
+function SettingsSection({
+  onLogout
+}) {
+  const [pw, setPw] = React.useState("");
+  const [pw2, setPw2] = React.useState("");
+  const [toast, showToast] = useToast();
+  const changePw = async () => {
+    if (pw.length < 6) {
+      showToast("⚠ Minimum 6 caractères");
+      return;
+    }
+    if (pw !== pw2) {
+      showToast("⚠ Mots de passe différents");
+      return;
+    }
+    try {
+      const {
+        error
+      } = await _supa.auth.updateUser({
+        password: pw
+      });
+      if (error) throw error;
+      setPw("");
+      setPw2("");
+      showToast("✓ Mot de passe mis à jour dans Supabase");
+    } catch (e) {
+      showToast("⚠ Erreur : " + e.message);
+    }
+  };
+  const exportData = async () => {
+    const d = await dbLoad();
+    const b = new Blob([JSON.stringify(d, null, 2)], {
+      type: "application/json"
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = "leadimas-admin.json";
+    a.click();
+    showToast("✓ Export depuis Supabase");
+  };
+  const clearAll = () => {
+    if (!confirm("Supprimer TOUTES les données admin ?")) return;
+    localStorage.removeItem(ADMIN_DATA_KEY);
+    showToast("✓ Supprimé");
+    setTimeout(() => location.reload(), 1500);
+  };
+  return React.createElement("div", {
+    style: {
+      maxWidth: 500
+    }
+  }, React.createElement(Toast, {
+    msg: toast
+  }), React.createElement("div", {
+    className: "adm-section-title"
+  }, "Param\xE8tres"), React.createElement("div", {
+    className: "adm-section-meta"
+  }, "\u2014 S\xC9CURIT\xC9 \xB7 EXPORT \xB7 SUPABASE-READY"), React.createElement("div", {
+    style: {
+      padding: "20px 22px",
+      border: "1px solid rgba(212,165,116,0.15)",
+      marginBottom: 18,
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 14
+    }
+  }, "\u2014 MOT DE PASSE SUPABASE AUTH"), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.12em",
+      color: "rgba(110,224,154,0.5)",
+      marginBottom: 14
+    }
+  }, "\u25CF Session active : ", _activeSession?.user?.email || "—"), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "NOUVEAU"), React.createElement("input", {
+    className: "adm-input",
+    type: "password",
+    value: pw,
+    onChange: e => setPw(e.target.value),
+    placeholder: "6 caract\xE8res min."
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "CONFIRMER"), React.createElement("input", {
+    className: "adm-input",
+    type: "password",
+    value: pw2,
+    onChange: e => setPw2(e.target.value),
+    placeholder: "R\xE9p\xE9ter"
+  })), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: changePw
+  }, "CHANGER")), React.createElement("div", {
+    style: {
+      padding: "20px 22px",
+      border: "1px solid rgba(212,165,116,0.15)",
+      marginBottom: 18,
+      background: "rgba(255,255,255,0.02)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 DONN\xC9ES (localStorage)"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      marginTop: 12
+    }
+  }, React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: exportData
+  }, "EXPORTER JSON"), React.createElement("button", {
+    className: "adm-danger-btn",
+    onClick: clearAll
+  }, "TOUT EFFACER"))), React.createElement("div", {
+    style: {
+      padding: "20px 22px",
+      border: "1px solid rgba(110,224,154,0.2)",
+      background: "rgba(110,224,154,0.04)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: "50%",
+      background: "#6ee09a",
+      boxShadow: "0 0 8px #6ee09a"
+    }
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.3em",
+      color: "#6ee09a"
+    }
+  }, "SUPABASE CONNECT\xC9")), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.12em",
+      color: "rgba(185,177,163,0.5)",
+      marginBottom: 4
+    }
+  }, "URL"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 11,
+      color: "var(--bone-dim)",
+      marginBottom: 10,
+      wordBreak: "break-all"
+    }
+  }, SUPA_URL), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 9,
+      letterSpacing: "0.12em",
+      color: "rgba(185,177,163,0.5)",
+      marginBottom: 4
+    }
+  }, "BUCKET"), React.createElement("div", {
+    style: {
+      fontFamily: "Inter,sans-serif",
+      fontSize: 11,
+      color: "var(--bone-dim)",
+      marginBottom: 16
+    }
+  }, SUPA_BUCKET), React.createElement("button", {
+    className: "adm-save-btn",
+    onClick: async () => {
+      try {
+        const d = loadAdminData();
+        await dbSave(d);
+        showToast("✓ Synchronisé avec Supabase");
+      } catch (e) {
+        showToast("⚠ Erreur Supabase: " + e.message);
+      }
+    }
+  }, "\u2191 FORCER LA SYNCHRO")), React.createElement("div", {
+    style: {
+      marginTop: 24,
+      paddingTop: 18,
+      borderTop: "1px solid rgba(212,165,116,0.1)"
+    }
+  }, React.createElement("button", {
+    className: "adm-danger-btn",
+    onClick: onLogout
+  }, "\u21A9 D\xC9CONNEXION")));
+}
+const ADM_NAV = [{
+  id: "dashboard",
+  icon: "◈",
+  label: "Tableau de bord"
+}, {
+  id: "videos",
+  icon: "▷",
+  label: "Vidéos"
+}, {
+  id: "hexagons",
+  icon: "⬡",
+  label: "Hexagones"
+}, {
+  id: "photos",
+  icon: "◼",
+  label: "Photos"
+}, {
+  id: "content",
+  icon: "✦",
+  label: "Contenu"
+}, {
+  id: "artist",
+  icon: "◎",
+  label: "Profil"
+}, {
+  id: "sounds",
+  icon: "♪",
+  label: "Sons"
+}, {
+  id: "settings",
+  icon: "⊙",
+  label: "Paramètres"
+}];
+function AdminDashboard({
+  onLogout,
+  userEmail
+}) {
+  const [section, setSection] = React.useState("dashboard");
+  const [data, setData] = React.useState(() => loadAdminData());
+  const [syncing, setSyncing] = React.useState(false);
+  const [syncStatus, setSyncStatus] = React.useState("local");
+  React.useEffect(() => {
+    setSyncing(true);
+    const cached = window.__supaData;
+    if (cached && Object.keys(cached).length) {
+      setData(cached);
+      setSyncStatus("supabase");
+      setSyncing(false);
+    }
+    (window.__supaReady || Promise.resolve({})).then(d => {
+      if (d && Object.keys(d).length) {
+        setData(d);
+        window.__supaData = d;
+        setSyncStatus("supabase");
+      } else if (!cached) {
+        setSyncStatus("local");
+      }
+      setSyncing(false);
+    }).catch(() => {
+      setSyncing(false);
+      setSyncStatus("offline");
+    });
+    let initialLoaded = false;
+    const onDataReady = e => {
+      if (initialLoaded) return;
+      const d = e.detail;
+      if (d && Object.keys(d).length) {
+        initialLoaded = true;
+        setData(d);
+        window.__supaData = d;
         setSyncStatus("supabase");
         setSyncing(false);
       }
-
-      
-      (window.__supaReady || Promise.resolve({})).then(d => {
-        if (d && Object.keys(d).length) {
-          setData(d);
-          window.__supaData = d;
-          setSyncStatus("supabase");
-        } else if (!cached) {
-          setSyncStatus("local");
-        }
-        setSyncing(false);
-      }).catch(() => { setSyncing(false); setSyncStatus("offline"); });
-
-      
-      let initialLoaded = false;
-      const onDataReady = (e) => {
-        if (initialLoaded) return; 
-        const d = e.detail;
-        if (d && Object.keys(d).length) {
-          initialLoaded = true;
-          setData(d);
-          window.__supaData = d;
-          setSyncStatus("supabase");
-          setSyncing(false);
-        }
-      };
-      window.addEventListener("ld-admin-data-ready", onDataReady);
-      return () => window.removeEventListener("ld-admin-data-ready", onDataReady);
-    }, []);
-    const handleSave = (patch) => {
-      
-      const base = window.__supaData && Object.keys(window.__supaData).length
-        ? window.__supaData
-        : data;
-      const next = { ...base, ...patch };
-      window.__supaData = next;
-      setData(next);
-      saveAdminData(next);
     };
-    return (
-      <div className="adm-dash">
-        <div className="adm-sidebar">
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}>
-            <div style={{width:22,height:26,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
-            <div>
-              <div style={{fontFamily:"Fraunces,serif",fontWeight:300,fontSize:16,color:"var(--bone)"}}>Lea Dimas</div>
-              <div style={{display:"flex",alignItems:"center",gap:5,marginTop:2}}>
-                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:8,letterSpacing:"0.3em",color:"var(--gold)"}}>ADMIN</div>
-                <div style={{
-                  width:5,height:5,borderRadius:"50%",flexShrink:0,
-                  background: syncStatus==="supabase" ? "#6ee09a" : syncStatus==="offline" ? "#e05555" : "rgba(212,165,116,0.5)",
-                  boxShadow: syncStatus==="supabase" ? "0 0 6px #6ee09a" : "none",
-                  transition:"all 400ms"
-                }} title={syncStatus==="supabase"?"Supabase ✓":syncStatus==="offline"?"Hors ligne":"Local cache"}/>
-              </div>
-              {userEmail && (
-                <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:7,letterSpacing:"0.1em",color:"rgba(110,224,154,0.6)",marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>
-                  ● {userEmail}
-                </div>
-              )}
-            </div>
-          </div>
-          <nav style={{flex:1}}>
-            {ADM_NAV.map(n=>(
-              <button key={n.id} onClick={()=>setSection(n.id)} className={"adm-nav-item"+(section===n.id?" active":"")}>
-                <span className="adm-nav-icon">{n.icon}</span>{n.label}
-              </button>
-            ))}
-          </nav>
-          <div style={{paddingTop:16,borderTop:"1px solid rgba(212,165,116,0.12)"}}>
-            <button className="adm-nav-item" style={{color:"rgba(220,100,100,0.7)"}} onClick={()=>{if(confirm("Déconnecter ?"))onLogout();}}>
-              <span className="adm-nav-icon">↩</span>Déconnexion
-            </button>
-            <a href={window.location.pathname + window.location.search}
-              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",color:"var(--bone-dim)",textDecoration:"none",fontFamily:"Inter,sans-serif",fontSize:13}}>
-              <span style={{width:20,textAlign:"center"}}>↗</span>Voir le site
-            </a>
-          </div>
-        </div>
-        <div className="adm-main">
-          {section==="dashboard" && <DashboardSection data={data}/>}
-          {section==="videos"    && <VideoAdminSection data={data} onSave={handleSave}/>}
-          {section==="hexagons"  && <HexManagerSection data={data} onSave={handleSave}/>}
-          {section==="photos"    && <PhotoSection data={data} onSave={handleSave}/>}
-          {section==="content"   && <ContentSection data={data} onSave={handleSave}/>}
-          {section==="artist"    && <ArtistSection data={data} onSave={handleSave}/>}
-          {section==="settings"  && <SettingsSection onLogout={onLogout}/>}
-          {section==="sounds"    && <SoundsSection data={data} onSave={handleSave}/>}
-        </div>
-      </div>
-    );
-  }
-
-  function AdminLogin({ onAuth, onBack }) {
-    const [email, setEmail] = React.useState("");
-    const [pw,    setPw]    = React.useState("");
-    const [show,  setShow]  = React.useState(false);
-    const [err,   setErr]   = React.useState("");
-    const [loading, setLoading] = React.useState(false);
-
-    const attempt = async () => {
-      if (!email.trim() || !pw) { setErr("Email et mot de passe requis."); return; }
-      setLoading(true); setErr("");
-      try {
-        const { data, error } = await _supa.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password: pw,
-        });
-        if (error) throw error;
-        if (data?.session) {
-          onAuth(data.session);
-        } else {
-          throw new Error("Aucune session retournée.");
-        }
-      } catch (e) {
-        setErr(e.message === "Invalid login credentials"
-          ? "Email ou mot de passe incorrect."
-          : e.message);
-        setPw("");
+    window.addEventListener("ld-admin-data-ready", onDataReady);
+    return () => window.removeEventListener("ld-admin-data-ready", onDataReady);
+  }, []);
+  const handleSave = patch => {
+    const base = window.__supaData && Object.keys(window.__supaData).length ? window.__supaData : data;
+    const next = {
+      ...base,
+      ...patch
+    };
+    window.__supaData = next;
+    setData(next);
+    saveAdminData(next);
+  };
+  return React.createElement("div", {
+    className: "adm-dash"
+  }, React.createElement("div", {
+    className: "adm-sidebar"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 40
+    }
+  }, React.createElement("div", {
+    style: {
+      width: 22,
+      height: 26,
+      clipPath: "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",
+      background: "linear-gradient(135deg,var(--gold),var(--gold-deep))",
+      flexShrink: 0
+    }
+  }), React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontFamily: "Fraunces,serif",
+      fontWeight: 300,
+      fontSize: 16,
+      color: "var(--bone)"
+    }
+  }, "Lea Dimas"), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 2
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.3em",
+      color: "var(--gold)"
+    }
+  }, "ADMIN"), React.createElement("div", {
+    style: {
+      width: 5,
+      height: 5,
+      borderRadius: "50%",
+      flexShrink: 0,
+      background: syncStatus === "supabase" ? "#6ee09a" : syncStatus === "offline" ? "#e05555" : "rgba(212,165,116,0.5)",
+      boxShadow: syncStatus === "supabase" ? "0 0 6px #6ee09a" : "none",
+      transition: "all 400ms"
+    },
+    title: syncStatus === "supabase" ? "Supabase ✓" : syncStatus === "offline" ? "Hors ligne" : "Local cache"
+  })), userEmail && React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 7,
+      letterSpacing: "0.1em",
+      color: "rgba(110,224,154,0.6)",
+      marginTop: 3,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      maxWidth: 160
+    }
+  }, "\u25CF ", userEmail))), React.createElement("nav", {
+    style: {
+      flex: 1
+    }
+  }, ADM_NAV.map(n => React.createElement("button", {
+    key: n.id,
+    onClick: () => setSection(n.id),
+    className: "adm-nav-item" + (section === n.id ? " active" : "")
+  }, React.createElement("span", {
+    className: "adm-nav-icon"
+  }, n.icon), n.label))), React.createElement("div", {
+    style: {
+      paddingTop: 16,
+      borderTop: "1px solid rgba(212,165,116,0.12)"
+    }
+  }, React.createElement("button", {
+    className: "adm-nav-item",
+    style: {
+      color: "rgba(220,100,100,0.7)"
+    },
+    onClick: () => {
+      if (confirm("Déconnecter ?")) onLogout();
+    }
+  }, React.createElement("span", {
+    className: "adm-nav-icon"
+  }, "\u21A9"), "D\xE9connexion"), React.createElement("a", {
+    href: window.location.pathname + window.location.search,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "10px 12px",
+      color: "var(--bone-dim)",
+      textDecoration: "none",
+      fontFamily: "Inter,sans-serif",
+      fontSize: 13
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 20,
+      textAlign: "center"
+    }
+  }, "\u2197"), "Voir le site"))), React.createElement("div", {
+    className: "adm-main"
+  }, section === "dashboard" && React.createElement(DashboardSection, {
+    data: data
+  }), section === "videos" && React.createElement(VideoAdminSection, {
+    data: data,
+    onSave: handleSave
+  }), section === "hexagons" && React.createElement(HexManagerSection, {
+    data: data,
+    onSave: handleSave
+  }), section === "photos" && React.createElement(PhotoSection, {
+    data: data,
+    onSave: handleSave
+  }), section === "content" && React.createElement(ContentSection, {
+    data: data,
+    onSave: handleSave
+  }), section === "artist" && React.createElement(ArtistSection, {
+    data: data,
+    onSave: handleSave
+  }), section === "settings" && React.createElement(SettingsSection, {
+    onLogout: onLogout
+  }), section === "sounds" && React.createElement(SoundsSection, {
+    data: data,
+    onSave: handleSave
+  })));
+}
+function AdminLogin({
+  onAuth,
+  onBack
+}) {
+  const [email, setEmail] = React.useState("");
+  const [pw, setPw] = React.useState("");
+  const [show, setShow] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const attempt = async () => {
+    if (!email.trim() || !pw) {
+      setErr("Email et mot de passe requis.");
+      return;
+    }
+    setLoading(true);
+    setErr("");
+    try {
+      const {
+        data,
+        error
+      } = await _supa.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: pw
+      });
+      if (error) throw error;
+      if (data?.session) {
+        onAuth(data.session);
+      } else {
+        throw new Error("Aucune session retournée.");
       }
-      setLoading(false);
-    };
-
-    return (
-      <div className="adm-overlay">
-        {}
-        <button
-          onClick={onBack}
-          style={{
-            position:"absolute", top:24, left:28,
-            background:"transparent", border:"none",
-            color:"rgba(185,177,163,0.4)", cursor:"pointer",
-            fontFamily:"JetBrains Mono,monospace", fontSize:10,
-            letterSpacing:"0.25em", display:"flex", alignItems:"center", gap:8,
-            transition:"color 200ms", padding:"6px 0",
-          }}
-          onMouseEnter={e=>e.currentTarget.style.color="var(--bone-dim)"}
-          onMouseLeave={e=>e.currentTarget.style.color="rgba(185,177,163,0.4)"}>
-          ← RETOUR AU SITE
-        </button>
-
-        <div className="adm-card">
-          <div className="adm-logo">
-            <div style={{width:26,height:30,clipPath:"polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",background:"linear-gradient(135deg,var(--gold),var(--gold-deep))",flexShrink:0}}/>
-            <div><div className="adm-title">Lea Dimas</div><div className="adm-sub">ADMIN STUDIO</div></div>
-          </div>
-
-          <div className="adm-field-group">
-            <label className="adm-label">EMAIL</label>
-            <input className="adm-input" type="email" value={email}
-              onChange={e=>setEmail(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&attempt()}
-              placeholder="hello@leadimas.studio"
-              autoFocus autoComplete="email" />
-          </div>
-
-          <div className="adm-field-group">
-            <label className="adm-label">MOT DE PASSE</label>
-            <div style={{position:"relative"}}>
-              <input className="adm-input" type={show?"text":"password"} value={pw}
-                onChange={e=>setPw(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&attempt()}
-                placeholder="••••••••"
-                autoComplete="current-password" />
-              <button onClick={()=>setShow(s=>!s)}
-                style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"var(--bone-dim)",cursor:"pointer",fontSize:14}}>
-                {show?"◉":"○"}
-              </button>
-            </div>
-          </div>
-
-          {err && <div className="adm-err">{err}</div>}
-
-          <button className="adm-btn" onClick={attempt} disabled={loading}
-            style={{opacity: loading ? 0.6 : 1, cursor: loading ? "default" : "pointer"}}>
-            {loading ? "CONNEXION…" : "ACCÉDER →"}
-          </button>
-
-          <div className="adm-hint">connexion sécurisée via supabase auth</div>
-        </div>
-      </div>
-    );
-  }
-
-  function AdminRouter() {
-    const [session,  setSession]  = React.useState(null);
-    const [checking, setChecking] = React.useState(true);
-    const [visible,  setVisible]  = React.useState(window.location.hash === "#/admin");
-
-    React.useEffect(() => {
-      const onHash = () => setVisible(window.location.hash === "#/admin");
-      window.addEventListener("hashchange", onHash);
-      return () => window.removeEventListener("hashchange", onHash);
-    }, []);
-
-    React.useEffect(() => {
-      
-      if (_activeSession) { setSession(_activeSession); setChecking(false); }
-      
-      _supa.auth.getSession().then(({ data }) => {
-        const sess = data?.session || null;
-        setSession(sess);
-        _activeSession = sess;
-        setChecking(false);
-      });
-      const { data: { subscription } } = _supa.auth.onAuthStateChange((_event, sess) => {
-        setSession(sess);
-        _activeSession = sess;
-      });
-      return () => subscription.unsubscribe();
-    }, []);
-
-    if (!visible) return null;
-
-    if (checking) return (
-      <div className="adm-overlay">
-        <div style={{fontFamily:"JetBrains Mono,monospace",fontSize:10,letterSpacing:"0.3em",color:"var(--gold)"}}>
-          VÉRIFICATION SESSION…
-        </div>
-      </div>
-    );
-
-    const handleBack = () => {
-      history.pushState("", document.title, window.location.pathname + window.location.search);
-      setVisible(false);
-    };
-
-    const handleLogout = async () => {
-      await _supa.auth.signOut();
-      _activeSession = null;
-      setSession(null);
-      handleBack();
-    };
-
-    if (!session) return <AdminLogin onAuth={sess => { setSession(sess); _activeSession = sess; if(window._loadAdminData) window._loadAdminData(); }} onBack={handleBack} />;
-    return <AdminDashboard onLogout={handleLogout} userEmail={session.user?.email} />;
-  }
-
-  const _am = document.createElement("div");
-  _am.id = "admin-root";
-  document.body.appendChild(_am);
-  ReactDOM.createRoot(_am).render(<AdminRouter/>);</script><script>(function() {
+    } catch (e) {
+      setErr(e.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : e.message);
+      setPw("");
+    }
+    setLoading(false);
+  };
+  return React.createElement("div", {
+    className: "adm-overlay"
+  }, React.createElement("button", {
+    onClick: onBack,
+    style: {
+      position: "absolute",
+      top: 24,
+      left: 28,
+      background: "transparent",
+      border: "none",
+      color: "rgba(185,177,163,0.4)",
+      cursor: "pointer",
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10,
+      letterSpacing: "0.25em",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      transition: "color 200ms",
+      padding: "6px 0"
+    },
+    onMouseEnter: e => e.currentTarget.style.color = "var(--bone-dim)",
+    onMouseLeave: e => e.currentTarget.style.color = "rgba(185,177,163,0.4)"
+  }, "\u2190 RETOUR AU SITE"), React.createElement("div", {
+    className: "adm-card"
+  }, React.createElement("div", {
+    className: "adm-logo"
+  }, React.createElement("div", {
+    style: {
+      width: 26,
+      height: 30,
+      clipPath: "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",
+      background: "linear-gradient(135deg,var(--gold),var(--gold-deep))",
+      flexShrink: 0
+    }
+  }), React.createElement("div", null, React.createElement("div", {
+    className: "adm-title"
+  }, "Lea Dimas"), React.createElement("div", {
+    className: "adm-sub"
+  }, "ADMIN STUDIO"))), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "EMAIL"), React.createElement("input", {
+    className: "adm-input",
+    type: "email",
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    onKeyDown: e => e.key === "Enter" && attempt(),
+    placeholder: "hello@leadimas.studio",
+    autoFocus: true,
+    autoComplete: "email"
+  })), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "MOT DE PASSE"), React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, React.createElement("input", {
+    className: "adm-input",
+    type: show ? "text" : "password",
+    value: pw,
+    onChange: e => setPw(e.target.value),
+    onKeyDown: e => e.key === "Enter" && attempt(),
+    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+    autoComplete: "current-password"
+  }), React.createElement("button", {
+    onClick: () => setShow(s => !s),
+    style: {
+      position: "absolute",
+      right: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "none",
+      border: "none",
+      color: "var(--bone-dim)",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, show ? "◉" : "○"))), err && React.createElement("div", {
+    className: "adm-err"
+  }, err), React.createElement("button", {
+    className: "adm-btn",
+    onClick: attempt,
+    disabled: loading,
+    style: {
+      opacity: loading ? 0.6 : 1,
+      cursor: loading ? "default" : "pointer"
+    }
+  }, loading ? "CONNEXION…" : "ACCÉDER →"), React.createElement("div", {
+    className: "adm-hint"
+  }, "connexion s\xE9curis\xE9e via supabase auth")));
+}
+function AdminRouter() {
+  const [session, setSession] = React.useState(null);
+  const [checking, setChecking] = React.useState(true);
+  const [visible, setVisible] = React.useState(window.location.hash === "#/admin");
+  React.useEffect(() => {
+    const onHash = () => setVisible(window.location.hash === "#/admin");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  React.useEffect(() => {
+    if (_activeSession) {
+      setSession(_activeSession);
+      setChecking(false);
+    }
+    _supa.auth.getSession().then(({
+      data
+    }) => {
+      const sess = data?.session || null;
+      setSession(sess);
+      _activeSession = sess;
+      setChecking(false);
+    });
+    const {
+      data: {
+        subscription
+      }
+    } = _supa.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+      _activeSession = sess;
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  if (!visible) return null;
+  if (checking) return React.createElement("div", {
+    className: "adm-overlay"
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 10,
+      letterSpacing: "0.3em",
+      color: "var(--gold)"
+    }
+  }, "V\xC9RIFICATION SESSION\u2026"));
+  const handleBack = () => {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+    setVisible(false);
+  };
+  const handleLogout = async () => {
+    await _supa.auth.signOut();
+    _activeSession = null;
+    setSession(null);
+    handleBack();
+  };
+  if (!session) return React.createElement(AdminLogin, {
+    onAuth: sess => {
+      setSession(sess);
+      _activeSession = sess;
+      if (window._loadAdminData) window._loadAdminData();
+    },
+    onBack: handleBack
+  });
+  return React.createElement(AdminDashboard, {
+    onLogout: handleLogout,
+    userEmail: session.user?.email
+  });
+}
+const _am = document.createElement("div");
+_am.id = "admin-root";
+document.body.appendChild(_am);
+ReactDOM.createRoot(_am).render(React.createElement(AdminRouter, null));
+})();</script><script>(function() {
 function MobileNav() {
   const [open, setOpen] = React.useState(false);
   const [navItems, setNavItems] = React.useState([]);
