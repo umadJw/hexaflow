@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://umadjw.github.io/hexaflow/sitemap.xml
