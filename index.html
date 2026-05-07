@@ -1544,6 +1544,11 @@ function setGlobalVidIdx(i) {
   window.__vidState.idx = i;
   window.__vidState.listeners.forEach(fn => fn(i));
 }
+window.getEmbedUrl = getEmbedUrl;
+window.getYouTubeId = getYouTubeId;
+window.getVimeoId = getVimeoId;
+window.setGlobalVidIdx = setGlobalVidIdx;
+window.setGlobalPhotoIdx = setGlobalPhotoIdx;
 function HexVideoSlider({
   videos,
   isHover
@@ -2875,10 +2880,13 @@ function VideoExpandedDetail({
     setGlobalVidIdx(ni);
   };
   const vid = videos[Math.min(vidIdx, n - 1)] || {};
-  const embedUrl = vid.url ? getEmbedUrl(vid.url) : null;
+  const _getEmbed = window.getEmbedUrl || getEmbedUrl || function (r) {
+    return r;
+  };
+  const embedUrl = vid.url ? _getEmbed(vid.url) : null;
   let autoplayEmbed = embedUrl;
   if (embedUrl) {
-    if (embedUrl.includes("youtube.com")) autoplayEmbed = embedUrl.replace("autoplay=0", "autoplay=1");else if (embedUrl.includes("vimeo.com")) autoplayEmbed = embedUrl + (embedUrl.includes("?") ? "&" : "?") + "autoplay=1";
+    if (embedUrl && embedUrl.includes("youtube.com")) autoplayEmbed = embedUrl.replace("autoplay=0", "autoplay=1");else if (embedUrl.includes("vimeo.com")) autoplayEmbed = embedUrl + (embedUrl.includes("?") ? "&" : "?") + "autoplay=1";
   }
   return React.createElement("div", {
     className: "mob-detail",
