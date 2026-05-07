@@ -1634,8 +1634,12 @@ function GraphicHexContent({
       }
     }, c.titleAccent)));
   }
-  const photo = photos[selIdx];
-  const others = photos.map((p, i) => ({
+  const photo = allPhotos[selIdx];
+  if (!photo) {
+    setSelIdx(-1);
+    return null;
+  }
+  const others = allPhotos.map((p, i) => ({
     p,
     i
   })).filter(({
@@ -1718,7 +1722,11 @@ function GraphicHexContent({
     i
   }) => React.createElement("div", {
     key: p.id,
-    onClick: e => select(e, i),
+    onClick: e => {
+      e.stopPropagation();
+      setSelIdx(i);
+      setGlobalPhotoIdx(i);
+    },
     style: {
       height: "100%",
       aspectRatio: "1",
@@ -1902,7 +1910,9 @@ function getGeometry(hexSize, spacing, shape) {
 }
 function getLiveCells() {
   const stored = window.__LIVE_CELLS;
-  if (stored && stored.length) return stored.filter(c => !c.hidden);
+  if (stored && stored.length) {
+    return stored.filter(c => !c.hidden && c.status !== "draft");
+  }
   return DATA.cells;
 }
 const CELLS_BY_LAYOUT_FN = cells => ({
@@ -3459,7 +3469,19 @@ function saveAdminData(d) {
   dbSave(d).catch(e => console.warn("[Admin] Supabase save error:", e));
 }
 function pushLiveCells(cells) {
-  window.__LIVE_CELLS = cells;
+  const d = window.__supaData || loadAdminData();
+  const cv = d.cellVideos || {};
+  const cp = d.cellPhotos || {};
+  const merged = cells.map(c => {
+    let out = {
+      ...c
+    };
+    if (cv[c.id] && !out.videos) out.videos = cv[c.id];
+    if (cp[c.id] && !out.photos) out.photos = cp[c.id];
+    return out;
+  });
+  window.__LIVE_CELLS = merged;
+  window.PORTFOLIO_DATA.cells = merged;
   window.dispatchEvent(new CustomEvent("ld-cells-updated"));
 }
 (function () {
