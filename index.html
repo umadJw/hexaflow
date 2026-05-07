@@ -1537,60 +1537,66 @@ function GraphicHexContent({
           padding: "1px 4px"
         }
       }, page * PER_PAGE + i + 1)));
-    })), totalPages > 1 && React.createElement("div", {
-      style: {
-        position: "absolute",
-        bottom: "4%",
-        left: 0,
-        right: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        zIndex: 10
-      }
-    }, React.createElement("button", {
+    })), totalPages > 1 && React.createElement(React.Fragment, null, React.createElement("button", {
       onClick: prevPage,
       disabled: page === 0,
       style: {
-        background: "transparent",
-        border: "1px solid rgba(212,165,116,0.3)",
+        position: "absolute",
+        left: 4,
+        top: "50%",
+        transform: "translateY(-50%)",
+        zIndex: 10,
+        background: "rgba(0,0,0,0.5)",
+        border: "1px solid rgba(212,165,116,0.35)",
         color: "var(--gold-bright)",
         width: 22,
-        height: 22,
+        height: 36,
         cursor: page === 0 ? "not-allowed" : "pointer",
-        opacity: page === 0 ? 0.3 : 1,
+        opacity: page === 0 ? 0.25 : 0.9,
         fontFamily: "JetBrains Mono,monospace",
-        fontSize: 12,
+        fontSize: 14,
         display: "flex",
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
+        transition: "all 200ms"
       }
-    }, "\u2039"), React.createElement("span", {
-      style: {
-        fontFamily: "JetBrains Mono,monospace",
-        fontSize: 8,
-        letterSpacing: "0.2em",
-        color: "rgba(212,165,116,0.5)"
-      }
-    }, page + 1, "/", totalPages), React.createElement("button", {
+    }, "\u2039"), React.createElement("button", {
       onClick: nextPage,
       disabled: page === totalPages - 1,
       style: {
-        background: "transparent",
-        border: "1px solid rgba(212,165,116,0.3)",
+        position: "absolute",
+        right: 4,
+        top: "50%",
+        transform: "translateY(-50%)",
+        zIndex: 10,
+        background: "rgba(0,0,0,0.5)",
+        border: "1px solid rgba(212,165,116,0.35)",
         color: "var(--gold-bright)",
         width: 22,
-        height: 22,
+        height: 36,
         cursor: page === totalPages - 1 ? "not-allowed" : "pointer",
-        opacity: page === totalPages - 1 ? 0.3 : 1,
+        opacity: page === totalPages - 1 ? 0.25 : 0.9,
         fontFamily: "JetBrains Mono,monospace",
-        fontSize: 12,
+        fontSize: 14,
         display: "flex",
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
+        transition: "all 200ms"
       }
-    }, "\u203A")), hasPhotos && totalPages === 1 && React.createElement("div", {
+    }, "\u203A"), React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: 6,
+        right: 30,
+        fontFamily: "JetBrains Mono,monospace",
+        fontSize: 8,
+        letterSpacing: "0.15em",
+        color: "rgba(212,165,116,0.5)",
+        background: "rgba(0,0,0,0.4)",
+        padding: "2px 5px",
+        zIndex: 10
+      }
+    }, page + 1, "/", totalPages)), hasPhotos && totalPages === 1 && React.createElement("div", {
       style: {
         position: "absolute",
         bottom: "6%",
