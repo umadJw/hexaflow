@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Lea Dimas — Portfolio</title>
@@ -427,30 +432,30 @@
   /* ══════════════════════════════════════════════════════════════
      INIT — load from Supabase (or localStorage fallback) on boot
   ══════════════════════════════════════════════════════════════ */
-  window.__supaReady = Promise.resolve({});
-    /* Admin data loaded lazily — only when admin session is active */
-    _supa.auth.getSession().then(({ data }) => {
-      if (data && data.session) {
-        dbLoad().then(d => {
-          window.__supaData = d;
-          if (d && Object.keys(d).length) {
-            let cells = d.cells && d.cells.length
-              ? d.cells
-              : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
-            const cv = d.cellVideos || {}, cp = d.cellPhotos || {};
-            cells = cells.map(c => {
-              let out = { ...c };
-              if (cv[c.id]) out.videos = cv[c.id];
-              if (cp[c.id]) out.photos = cp[c.id];
-              return out;
-            });
-            window.__LIVE_CELLS = cells;
-            if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
-            window.dispatchEvent(new CustomEvent("ld-cells-updated"));
-          }
-        });
-      }
-    });
+  window.__supaReady = dbLoad().then(d => {
+    window.__supaData = d;
+    /* inject into live cells immediately */
+    if (d && Object.keys(d).length) {
+      let cells = d.cells && d.cells.length
+        ? d.cells
+        : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
+      const cv = d.cellVideos || {};
+      const cp = d.cellPhotos || {};
+      cells = cells.map(c => {
+        let out = { ...c };
+        if (cv[c.id]) out.videos = cv[c.id];
+        if (cp[c.id]) out.photos = cp[c.id];
+        return out;
+      });
+      window.__LIVE_CELLS = cells;
+      if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
+      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+    }
+    return d;
+  }).catch(e => {
+    console.warn("[Supabase] init failed:", e);
+    return {};
+  });
   </script>
   <script>
   (function(){
@@ -462,27 +467,12 @@
     }
   })();
   </script>
-
-  <!-- SEO -->
-  <meta name="description" content="Lea Dimas — Motion designer & graphic artist. Video editing, brand identities, editorial systems.">
-  <meta name="keywords" content="motion design, video editing, graphic design, brand identity, portfolio">
-  <meta name="author" content="Lea Dimas">
-  <meta name="robots" content="index, follow">
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Lea Dimas — Studio">
-  <meta property="og:description" content="Motion designer & graphic artist. Video editing, brand identities, editorial systems.">
-  <meta property="og:url" content="https://umadjw.github.io/hexaflow/">
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Lea Dimas — Studio">
-  <meta name="twitter:description" content="Motion designer & graphic artist.">
 </head>
 <body>
   <div id="root"></div>
 
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
   
   <!-- ── Data ──────────────────────────────────────────────────────────── -->
   <script>
@@ -680,7 +670,7 @@
   </script>
 
   <!-- ── Tweaks panel ──────────────────────────────────────────────────── -->
-  <script defer>
+  <script>
 (function() {
 const __TWEAKS_STYLE = `
     .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
@@ -1231,8 +1221,7 @@ Object.assign(window, {
 </script>
 
   <!-- ── Hex content renderer ───────────────────────────────────────────── -->
-  <script defer>
-(function() {
+  <script>
 const HEX_CLIP_INNER = "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)";
 function HexContent({
   cell,
@@ -1996,11 +1985,10 @@ function GraphicHexContent({
   })))));
 }
 window.HexContent = HexContent;
-})();
 </script>
 
   <!-- ── App ───────────────────────────────────────────────────────────── -->
-  <script defer>
+  <script>
 (function() {
 const {
   useState,
@@ -3700,7 +3688,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(
 </script>
 
   <!-- ── Admin Panel ─────────────────────────────────────────────────── -->
-  <script defer>
+  <script>
 (function() {
 const ADMIN_DATA_KEY = "ld_admin_data";
 function loadAdminData() {
@@ -6348,7 +6336,7 @@ ReactDOM.createRoot(_am).render(React.createElement(AdminRouter, null));
 
 
   <!-- ── Mobile Nav island ──────────────────────────────────── -->
-  <script defer>
+  <script>
 (function() {
 function MobileNav() {
   const [open, setOpen] = React.useState(false);
