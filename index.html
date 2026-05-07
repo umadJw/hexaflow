@@ -56,7 +56,17 @@
         .from(SUPA_TABLE)
         .upsert({ id: "singleton", data: merged, updated_at: new Date().toISOString() });
       if (error) throw error;
-      localStorage.setItem("ld_admin_data", JSON.stringify(merged));
+      try {
+        const lean = JSON.parse(JSON.stringify(merged));
+        if (lean.cellPhotos) {
+          Object.keys(lean.cellPhotos).forEach(k => {
+            lean.cellPhotos[k] = (lean.cellPhotos[k] || []).map(p => {
+              const { dataUrl, ...rest } = p; return rest;
+            });
+          });
+        }
+        localStorage.setItem("ld_admin_data", JSON.stringify(lean));
+      } catch(e) { console.warn("[localStorage] Quota exceeded, skipping cache"); }
       return merged;
     } catch (e) {
       console.warn("[Supabase] dbSave failed:", e.message);
@@ -3494,7 +3504,18 @@ function loadAdminData() {
 }
 function saveAdminData(d) {
   window.__supaData = d;
-  localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(d));
+  try {
+    const lean = JSON.parse(JSON.stringify(d));
+    if (lean.cellPhotos) Object.keys(lean.cellPhotos).forEach(k => {
+      lean.cellPhotos[k] = (lean.cellPhotos[k] || []).map(({
+        dataUrl,
+        ...r
+      }) => r);
+    });
+    localStorage.setItem("ld_admin_data", JSON.stringify(lean));
+  } catch (e) {
+    console.warn("[localStorage] Quota exceeded:", e.message);
+  }
   dbSave(d).catch(e => console.warn("[Admin] Supabase save error:", e));
 }
 function pushLiveCells(cells) {
