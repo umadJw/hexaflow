@@ -48,13 +48,15 @@
       return null;   
     }
     try {
-      const existing = await dbLoad();
+      
+      const existing = window.__supaData || JSON.parse(localStorage.getItem(ADMIN_DATA_KEY) || "{}");
       const merged = { ...existing, ...patch };
+      window.__supaData = merged;
       const { error } = await _supa
         .from(SUPA_TABLE)
         .upsert({ id: "singleton", data: merged, updated_at: new Date().toISOString() });
       if (error) throw error;
-      localStorage.setItem("ld_admin_data", JSON.stringify(merged));
+      localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(merged));
       return merged;
     } catch (e) {
       console.warn("[Supabase] dbSave failed:", e.message);
@@ -5825,10 +5827,12 @@ function AdminDashboard({
     return () => window.removeEventListener("ld-admin-data-ready", onDataReady);
   }, []);
   const handleSave = patch => {
+    const base = window.__supaData && Object.keys(window.__supaData).length ? window.__supaData : data;
     const next = {
-      ...data,
+      ...base,
       ...patch
     };
+    window.__supaData = next;
     setData(next);
     saveAdminData(next);
   };
