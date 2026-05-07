@@ -161,11 +161,17 @@
         window.__LIVE_CELLS = cells;
         if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
         window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+        window.dispatchEvent(new CustomEvent("ld-admin-data-ready", { detail: d }));
       }
       return d;
     }).catch(e => { console.warn("[Supabase] load failed:", e); return {}; });
   }
-  window._loadAdminData = _loadAdminData;
+  window._loadAdminData = function() {
+    return _loadAdminData().then(d => {
+      window.dispatchEvent(new CustomEvent("ld-admin-data-ready", { detail: d }));
+      return d;
+    });
+  };
   
   _supa.auth.getSession().then(({ data }) => {
     if (data && data.session) {
@@ -5778,12 +5784,18 @@ function AdminDashboard({
   const [syncStatus, setSyncStatus] = React.useState("local");
   React.useEffect(() => {
     setSyncing(true);
+    const cached = window.__supaData;
+    if (cached && Object.keys(cached).length) {
+      setData(cached);
+      setSyncStatus("supabase");
+      setSyncing(false);
+    }
     (window.__supaReady || Promise.resolve({})).then(d => {
       if (d && Object.keys(d).length) {
         setData(d);
         window.__supaData = d;
         setSyncStatus("supabase");
-      } else {
+      } else if (!cached) {
         setSyncStatus("local");
       }
       setSyncing(false);
@@ -5791,6 +5803,17 @@ function AdminDashboard({
       setSyncing(false);
       setSyncStatus("offline");
     });
+    const onDataReady = e => {
+      const d = e.detail;
+      if (d && Object.keys(d).length) {
+        setData(d);
+        window.__supaData = d;
+        setSyncStatus("supabase");
+        setSyncing(false);
+      }
+    };
+    window.addEventListener("ld-admin-data-ready", onDataReady);
+    return () => window.removeEventListener("ld-admin-data-ready", onDataReady);
   }, []);
   const handleSave = patch => {
     const next = {
