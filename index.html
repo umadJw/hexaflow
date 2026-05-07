@@ -49,14 +49,14 @@
     }
     try {
       
-      const existing = window.__supaData || JSON.parse(localStorage.getItem(ADMIN_DATA_KEY) || "{}");
+      const existing = window.__supaData || JSON.parse(localStorage.getItem("ld_admin_data") || "{}");
       const merged = { ...existing, ...patch };
       window.__supaData = merged;
       const { error } = await _supa
         .from(SUPA_TABLE)
         .upsert({ id: "singleton", data: merged, updated_at: new Date().toISOString() });
       if (error) throw error;
-      localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(merged));
+      localStorage.setItem("ld_admin_data", JSON.stringify(merged));
       return merged;
     } catch (e) {
       console.warn("[Supabase] dbSave failed:", e.message);
