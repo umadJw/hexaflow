@@ -1,0 +1,23 @@
+/*
+  # Sécurité de base
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+  # HTTPS strict (activé une fois domaine custom connecté)
+  # Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+  # Cache pour assets statiques
+  Cache-Control: public, max-age=3600
+
+/index.html
+  # HTML pas mis en cache — toujours frais
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/*.js
+  Cache-Control: public, max-age=86400
+
+/*.css
+  Cache-Control: public, max-age=86400
