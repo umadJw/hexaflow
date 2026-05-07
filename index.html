@@ -4357,13 +4357,17 @@ function HexContentEditor({
   const [detail, setDetail] = React.useState({
     ...(cellData.detail || {})
   });
+  const [content, setContent] = React.useState({
+    ...(cellData.content || {})
+  });
   const [label, setLabel] = React.useState(cellData.label || "");
   const [toast, showToast] = useToast();
   const save = () => {
     const updatedCells = (data.cells || window.PORTFOLIO_DATA.cells).map(c => c.id === cell.id ? {
       ...c,
       label,
-      detail
+      detail,
+      content
     } : c);
     onSave({
       cells: updatedCells
@@ -4374,19 +4378,91 @@ function HexContentEditor({
   return React.createElement("div", null, React.createElement(Toast, {
     msg: toast
   }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 TEXTE DANS L'HEXAGONE"), React.createElement("div", {
     className: "adm-field-group"
   }, React.createElement("label", {
     className: "adm-label"
-  }, "NOM AFFICH\xC9 (menu + hexagone)"), React.createElement("input", {
+  }, "NOM (menu + label hex)"), React.createElement("input", {
     className: "adm-input",
     value: label,
     onChange: e => setLabel(e.target.value),
     placeholder: "ex: Mes Projets Film"
   })), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginBottom: 16
+    }
+  }, React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "TITRE DANS LA HEX"), React.createElement("input", {
+    className: "adm-input",
+    value: content.title || "",
+    onChange: e => setContent(d => ({
+      ...d,
+      title: e.target.value
+    })),
+    placeholder: "ex: Video"
+  })), React.createElement("div", null, React.createElement("label", {
+    className: "adm-label"
+  }, "ACCENT (italique dor\xE9)"), React.createElement("input", {
+    className: "adm-input",
+    value: content.titleAccent || "",
+    onChange: e => setContent(d => ({
+      ...d,
+      titleAccent: e.target.value
+    })),
+    placeholder: "ex: Editing"
+  }))), content.sub !== undefined && React.createElement("div", {
     className: "adm-field-group"
   }, React.createElement("label", {
     className: "adm-label"
-  }, "TITRE PANNEAU DU BAS"), React.createElement("input", {
+  }, "SOUS-TITRE HEX"), React.createElement("input", {
+    className: "adm-input",
+    value: content.sub || "",
+    onChange: e => setContent(d => ({
+      ...d,
+      sub: e.target.value
+    }))
+  })), Array.isArray(content.items) && React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "ITEMS (un par ligne)"), React.createElement("textarea", {
+    className: "adm-textarea",
+    rows: 3,
+    value: (content.items || []).join("\n"),
+    onChange: e => setContent(d => ({
+      ...d,
+      items: e.target.value.split("\n").filter(Boolean)
+    }))
+  })), React.createElement("div", {
+    style: {
+      height: 1,
+      background: "rgba(212,165,116,0.1)",
+      margin: "16px 0"
+    }
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.3em",
+      color: "var(--gold)",
+      marginBottom: 12
+    }
+  }, "\u2014 PANNEAU DU BAS (au clic)"), React.createElement("div", {
+    className: "adm-field-group"
+  }, React.createElement("label", {
+    className: "adm-label"
+  }, "TITRE PANNEAU"), React.createElement("input", {
     className: "adm-input",
     value: detail.title || "",
     onChange: e => setDetail(d => ({
@@ -4398,7 +4474,7 @@ function HexContentEditor({
     className: "adm-field-group"
   }, React.createElement("label", {
     className: "adm-label"
-  }, "DESCRIPTION (rich text)"), React.createElement(VideoRichEditor, {
+  }, "DESCRIPTION"), React.createElement(VideoRichEditor, {
     id: "hce-" + cell.id,
     value: detail.body || "",
     onChange: v => setDetail(d => ({
