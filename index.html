@@ -168,11 +168,32 @@
       return d;
     }).catch(e => { console.warn("[Supabase] load failed:", e); return {}; });
   }
+  
   window._loadAdminData = function() {
-    return _loadAdminData().then(d => {
+    return dbLoad().then(d => {
+      window.__supaData = d;
+      if (d && Object.keys(d).length) {
+        let cells = d.cells && d.cells.length
+          ? d.cells
+          : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
+        const cv = d.cellVideos || {}, cp = d.cellPhotos || {};
+        cells = cells.map(c => {
+          const out = { ...c };
+          if (cv[c.id]) out.videos = cv[c.id];
+          if (cp[c.id]) out.photos = cp[c.id];
+          if (d.sounds && d.sounds.custom) {
+            if (!window.PORTFOLIO_DATA.sounds.custom) window.PORTFOLIO_DATA.sounds.custom = {};
+            Object.assign(window.PORTFOLIO_DATA.sounds.custom, d.sounds.custom);
+          }
+          return out;
+        });
+        window.__LIVE_CELLS = cells;
+        if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
+        window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+      }
       window.dispatchEvent(new CustomEvent("ld-admin-data-ready", { detail: d }));
       return d;
-    });
+    }).catch(e => { console.warn("[Supabase] load failed:", e); return {}; });
   };
   
   _supa.auth.getSession().then(({ data }) => {
