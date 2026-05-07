@@ -427,30 +427,30 @@
   /* ══════════════════════════════════════════════════════════════
      INIT — load from Supabase (or localStorage fallback) on boot
   ══════════════════════════════════════════════════════════════ */
-  window.__supaReady = dbLoad().then(d => {
-    window.__supaData = d;
-    /* inject into live cells immediately */
-    if (d && Object.keys(d).length) {
-      let cells = d.cells && d.cells.length
-        ? d.cells
-        : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
-      const cv = d.cellVideos || {};
-      const cp = d.cellPhotos || {};
-      cells = cells.map(c => {
-        let out = { ...c };
-        if (cv[c.id]) out.videos = cv[c.id];
-        if (cp[c.id]) out.photos = cp[c.id];
-        return out;
-      });
-      window.__LIVE_CELLS = cells;
-      if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
-      window.dispatchEvent(new CustomEvent("ld-cells-updated"));
-    }
-    return d;
-  }).catch(e => {
-    console.warn("[Supabase] init failed:", e);
-    return {};
-  });
+  window.__supaReady = Promise.resolve({});
+    /* Admin data loaded lazily — only when admin session is active */
+    _supa.auth.getSession().then(({ data }) => {
+      if (data && data.session) {
+        dbLoad().then(d => {
+          window.__supaData = d;
+          if (d && Object.keys(d).length) {
+            let cells = d.cells && d.cells.length
+              ? d.cells
+              : (window.PORTFOLIO_DATA ? window.PORTFOLIO_DATA.cells.map(c=>({...c})) : []);
+            const cv = d.cellVideos || {}, cp = d.cellPhotos || {};
+            cells = cells.map(c => {
+              let out = { ...c };
+              if (cv[c.id]) out.videos = cv[c.id];
+              if (cp[c.id]) out.photos = cp[c.id];
+              return out;
+            });
+            window.__LIVE_CELLS = cells;
+            if (window.PORTFOLIO_DATA) window.PORTFOLIO_DATA.cells = cells;
+            window.dispatchEvent(new CustomEvent("ld-cells-updated"));
+          }
+        });
+      }
+    });
   </script>
   <script>
   (function(){
@@ -462,6 +462,21 @@
     }
   })();
   </script>
+
+  <!-- SEO -->
+  <meta name="description" content="Lea Dimas — Motion designer & graphic artist. Video editing, brand identities, editorial systems.">
+  <meta name="keywords" content="motion design, video editing, graphic design, brand identity, portfolio">
+  <meta name="author" content="Lea Dimas">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Lea Dimas — Studio">
+  <meta property="og:description" content="Motion designer & graphic artist. Video editing, brand identities, editorial systems.">
+  <meta property="og:url" content="https://umadjw.github.io/hexaflow/">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Lea Dimas — Studio">
+  <meta name="twitter:description" content="Motion designer & graphic artist.">
 </head>
 <body>
   <div id="root"></div>
@@ -665,7 +680,7 @@
   </script>
 
   <!-- ── Tweaks panel ──────────────────────────────────────────────────── -->
-  <script>
+  <script defer>
 (function() {
 const __TWEAKS_STYLE = `
     .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
@@ -1216,7 +1231,7 @@ Object.assign(window, {
 </script>
 
   <!-- ── Hex content renderer ───────────────────────────────────────────── -->
-  <script>
+  <script defer>
 (function() {
 const HEX_CLIP_INNER = "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)";
 function HexContent({
@@ -1980,7 +1995,7 @@ window.HexContent = HexContent;
 </script>
 
   <!-- ── App ───────────────────────────────────────────────────────────── -->
-  <script>
+  <script defer>
 (function() {
 const {
   useState,
@@ -2692,41 +2707,7 @@ function Sidebar({
         color: active ? "var(--gold)" : "rgba(185,177,163,0.4)"
       }
     }, item.num));
-  })), React.createElement(SoundPicker, null), React.createElement("div", {
-    style: {
-      marginTop: 18,
-      paddingTop: 16,
-      borderTop: "1px solid var(--line)"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontFamily: "JetBrains Mono, monospace",
-      fontSize: 9,
-      letterSpacing: "0.3em",
-      color: "var(--bone-dim)",
-      marginBottom: 10
-    }
-  }, "\u2014 ELSEWHERE"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 6,
-      fontFamily: "Inter, sans-serif",
-      fontSize: 12,
-      color: "var(--bone)"
-    }
-  }, (() => {
-    const liveSocial = window.PORTFOLIO_DATA?.social || DATA.social;
-    return liveSocial.filter(s => s.visible !== false).map(s => React.createElement("a", {
-      key: s.label,
-      href: s.url,
-      style: {
-        color: "var(--bone)",
-        textDecoration: "none",
-        opacity: 0.75
-      }
-    }, "\u2197 ", s.label));
-  })()))));
+  })), React.createElement(SoundPicker, null)));
 }
 function TopBar({
   revealed,
@@ -3711,7 +3692,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(
 </script>
 
   <!-- ── Admin Panel ─────────────────────────────────────────────────── -->
-  <script>
+  <script defer>
 (function() {
 const ADMIN_DATA_KEY = "ld_admin_data";
 function loadAdminData() {
@@ -6359,7 +6340,7 @@ ReactDOM.createRoot(_am).render(React.createElement(AdminRouter, null));
 
 
   <!-- ── Mobile Nav island ──────────────────────────────────── -->
-  <script>
+  <script defer>
 (function() {
 function MobileNav() {
   const [open, setOpen] = React.useState(false);
@@ -6455,33 +6436,7 @@ function MobileNav() {
         color: active ? "var(--gold)" : "rgba(185,177,163,0.28)"
       }
     }, item.num));
-  })), React.createElement("div", {
-    className: "mob-dfoot"
-  }, React.createElement("div", {
-    style: {
-      fontFamily: "JetBrains Mono,monospace",
-      fontSize: 8,
-      letterSpacing: "0.28em",
-      color: "var(--bone-dim)",
-      marginBottom: 10
-    }
-  }, "\u2014 ELSEWHERE"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, (window.PORTFOLIO_DATA?.social || D.social || []).filter(s => s.visible !== false).map(s => React.createElement("a", {
-    key: s.label,
-    href: s.url,
-    style: {
-      fontFamily: "Inter,sans-serif",
-      fontSize: 12,
-      color: "var(--bone)",
-      textDecoration: "none",
-      opacity: 0.7
-    }
-  }, "\u2197 ", s.label))))));
+  }))));
 }
 const _mn = document.createElement("div");
 document.body.appendChild(_mn);
