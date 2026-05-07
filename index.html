@@ -40,21 +40,67 @@
     }
   }
 
+    
+  function _cleanForDB(d) {
+    try {
+      const clean = JSON.parse(JSON.stringify(d));
+
+      const cleanPhoto = p => {
+        const { dataUrl, ...rest } = p;
+        return rest;
+      };
+      const cleanVideo = v => {
+        if (v.blobUrl && (v.blobUrl.startsWith('blob:') || v.blobUrl.startsWith('data:'))) {
+          const { blobUrl, ...rest } = v;
+          return rest;
+        }
+        return v;
+      };
+
+      
+      if (clean.cellPhotos) {
+        Object.keys(clean.cellPhotos).forEach(k => {
+          clean.cellPhotos[k] = (clean.cellPhotos[k] || []).map(cleanPhoto);
+        });
+      }
+
+      
+      if (clean.cellVideos) {
+        Object.keys(clean.cellVideos).forEach(k => {
+          clean.cellVideos[k] = (clean.cellVideos[k] || []).map(cleanVideo);
+        });
+      }
+
+      
+      if (clean.cells) {
+        clean.cells = clean.cells.map(c => {
+          const out = { ...c };
+          if (out.photos) out.photos = out.photos.map(cleanPhoto);
+          if (out.videos) out.videos = out.videos.map(cleanVideo);
+          return out;
+        });
+      }
+
+      return clean;
+    } catch(e) { return d; }
+  }
+
   async function dbSave(patch) {
     
     try { await requireAuth(); } catch(authErr) {
       console.warn("[dbSave] Blocked — no active session:", authErr.message);
       _showErrorToast("Écriture refusée : session expirée. Reconnectez-vous.");
-      return null;   
+      return null;
     }
     try {
-      
       const existing = window.__supaData || JSON.parse(localStorage.getItem("ld_admin_data") || "{}");
       const merged = { ...existing, ...patch };
       window.__supaData = merged;
+      
+      const clean = _cleanForDB(merged);
       const { error } = await _supa
         .from(SUPA_TABLE)
-        .upsert({ id: "singleton", data: merged, updated_at: new Date().toISOString() });
+        .upsert({ id: "singleton", data: clean, updated_at: new Date().toISOString() });
       if (error) throw error;
       try {
         const lean = JSON.parse(JSON.stringify(merged));
