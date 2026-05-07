@@ -461,6 +461,7 @@
       return d;
     }).catch(e => { console.warn("[Supabase] load failed:", e); return {}; });
   }
+  window._loadAdminData = _loadAdminData;
   /* Only load if session exists — no call for anonymous visitors */
   _supa.auth.getSession().then(({ data }) => {
     if (data && data.session) {
@@ -6330,6 +6331,7 @@ function AdminRouter() {
     onAuth: sess => {
       setSession(sess);
       _activeSession = sess;
+      if (window._loadAdminData) window._loadAdminData();
     },
     onBack: handleBack
   });
