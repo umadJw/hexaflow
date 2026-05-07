@@ -6,14 +6,16 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-  # HTTPS strict (activé une fois domaine custom connecté)
+  # HTTPS strict — activer après domaine custom connecté
   # Strict-Transport-Security: max-age=31536000; includeSubDomains
 
-  # Cache pour assets statiques
+  # CSP — autorise toutes les sources utilisées par le site
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' blob: https:; frame-src https://www.youtube.com https://player.vimeo.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src blob:;
+
+  # Cache
   Cache-Control: public, max-age=3600
 
 /index.html
-  # HTML pas mis en cache — toujours frais
   Cache-Control: no-cache, no-store, must-revalidate
 
 /*.js
