@@ -3163,6 +3163,7 @@ function App() {
     if (!loaded) return;
     const STEP = 80;
     const onWheel = e => {
+      if (e.target && e.target.closest && e.target.closest(".adm-dash, .adm-main, .adm-overlay")) return;
       e.preventDefault();
       if (lockRef.current) return;
       accumRef.current += e.deltaY;
