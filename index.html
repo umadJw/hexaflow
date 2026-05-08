@@ -252,11 +252,7 @@
     }).catch(e => { console.warn("[Supabase] load failed:", e); return {}; });
   };
   
-  _supa.auth.getSession().then(({ data }) => {
-    if (data && data.session) {
-      window.__supaReady = _loadAdminData();
-    }
-  });</script><script>(function(){
+  window.__supaReady = _loadAdminData();</script><script>(function(){
     var vw = window.innerWidth;
     if (vw <= 768) {
       
@@ -6938,7 +6934,25 @@ function MobileNav() {
         color: active ? "var(--gold)" : "rgba(185,177,163,0.28)"
       }
     }, item.num));
-  }))));
+  })), React.createElement("div", {
+    className: "mob-dfoot"
+  }, React.createElement("button", {
+    onClick: () => {
+      window.location.hash = "/admin";
+      setOpen(false);
+    },
+    style: {
+      background: "transparent",
+      border: "1px solid rgba(212,165,116,0.08)",
+      color: "rgba(185,177,163,0.15)",
+      fontFamily: "JetBrains Mono,monospace",
+      fontSize: 8,
+      letterSpacing: "0.2em",
+      padding: "8px 14px",
+      cursor: "pointer",
+      width: "100%"
+    }
+  }, "\xB7\xB7\xB7"))));
 }
 const _mn = document.createElement("div");
 document.body.appendChild(_mn);
