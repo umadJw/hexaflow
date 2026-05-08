@@ -252,12 +252,8 @@
     }).catch(e => { console.warn("[Supabase] load failed:", e); return {}; });
   };
   
-  window.__supaReady = Promise.resolve({});
-  _supa.auth.getSession().then(({ data }) => {
-    if (data && data.session) {
-      window.__supaReady = _loadAdminData();
-    }
-  });</script><script>(function(){
+  
+  window.__supaReady = _loadAdminData();</script><script>(function(){
     var vw = window.innerWidth;
     if (vw <= 768) {
       
